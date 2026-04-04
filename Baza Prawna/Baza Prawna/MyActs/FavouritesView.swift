@@ -581,12 +581,16 @@ struct DocumentRowView: View {
             } else {
                 NavigationLink(destination: {
                     if let fileURL = favoritesManager.getFavoriteFileURL(id: favorite.id) {
-                        UnifiedPDFViewer(
-                            title: favorite.title,
-                            pdfDataProvider: {
-                                try Data(contentsOf: fileURL)
-                            }
-                        )
+                        if favorite.resolvedFileType == "md" {
+                            MDViewer(title: favorite.title, fileURL: fileURL)
+                        } else {
+                            UnifiedPDFViewer(
+                                title: favorite.title,
+                                pdfDataProvider: {
+                                    try Data(contentsOf: fileURL)
+                                }
+                            )
+                        }
                     }
                 }) {
                     FavoriteRowView(favorite: favorite)
@@ -682,20 +686,23 @@ struct DocumentCardView: View {
             } else {
                 NavigationLink(destination: {
                     if let fileURL = favoritesManager.getFavoriteFileURL(id: favorite.id) {
-                        UnifiedPDFViewer(
-                            title: favorite.title,
-                            pdfDataProvider: {
-                                try Data(contentsOf: fileURL)
-                            }
-                        )
+                        if favorite.resolvedFileType == "md" {
+                            MDViewer(title: favorite.title, fileURL: fileURL)
+                        } else {
+                            UnifiedPDFViewer(
+                                title: favorite.title,
+                                pdfDataProvider: {
+                                    try Data(contentsOf: fileURL)
+                                }
+                            )
+                        }
                     }
                 }) {
                     VStack(alignment: .leading, spacing: isRegularWidth ? 12 : 8) {
-                        // Document icon
                         HStack {
-                            Image(systemName: "doc.fill")
+                            Image(systemName: favorite.resolvedFileType == "md" ? "doc.richtext" : "doc.fill")
                                 .font(isRegularWidth ? .largeTitle : .title2)
-                                .foregroundColor(.blue)
+                                .foregroundColor(favorite.resolvedFileType == "md" ? .purple : .blue)
                             
                             Spacer()
                         }
