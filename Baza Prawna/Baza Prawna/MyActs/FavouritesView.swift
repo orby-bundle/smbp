@@ -24,6 +24,7 @@ struct FavoritesView: View {
     @State private var isSelectionMode: Bool = false
     @State private var showingBulkDeleteConfirmation = false
     @State private var showingBulkMoveSheet = false
+    @State private var pendingDeleteDocumentIds: Set<String> = []
     
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -127,7 +128,8 @@ struct FavoritesView: View {
                                                 onSelect: {
                                                     enterSelectionMode()
                                                     selectedDocumentIds.insert(favorite.id)
-                                                }
+                                                },
+                                                onRequestDelete: { pendingDeleteDocumentIds = [$0] }
                                             )
                                         }
                                     }
@@ -226,7 +228,8 @@ struct FavoritesView: View {
                                         onSelect: {
                                             enterSelectionMode()
                                             selectedDocumentIds.insert(favorite.id)
-                                        }
+                                        },
+                                        onRequestDelete: { pendingDeleteDocumentIds = [$0] }
                                     )
                                 }
                                 .onDelete(perform: deleteFavorites)
@@ -300,6 +303,12 @@ struct FavoritesView: View {
             },
             onBulkDelete: {
                 bulkDeleteDocuments()
+            }
+        ))
+        .modifier(PendingDocumentDeleteAlertModifier(
+            pendingDeleteDocumentIds: $pendingDeleteDocumentIds,
+            onConfirmDelete: { ids in
+                favoritesManager.bulkDeleteDocuments(ids: ids)
             }
         ))
     }
@@ -380,10 +389,7 @@ struct FavoritesView: View {
     
     private func deleteFavorites(offsets: IndexSet) {
         let rootDocuments = favoritesManager.getDocumentsInRoot()
-        for index in offsets {
-            let favorite = rootDocuments[index]
-            favoritesManager.removeFavorite(id: favorite.id)
-        }
+        pendingDeleteDocumentIds = Set(offsets.map { rootDocuments[$0].id })
     }
     
     private func deleteFolders(offsets: IndexSet) {
@@ -412,6 +418,8 @@ struct FavoriteRowView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
+            DocumentTileTopBanners(favorite: favorite, isRegularWidth: false)
+                .frame(maxWidth: .infinity, alignment: .leading)
             Text(favorite.title)
                 .font(.headline)
                 .foregroundColor(.primary)
@@ -550,6 +558,52 @@ struct ShareSheetManager: ViewModifier {
     }
 }
 
+// MARK: - Document tile banners (PDF / notes on MD)
+
+private struct DocumentTileTopBanners: View {
+    let favorite: FavoriteDocument
+    var isRegularWidth: Bool = false
+    @ObservedObject private var notesManager = NotesManager.shared
+    
+    private var documentKey: String {
+        NotesManager.documentKey(favoriteId: favorite.id)
+    }
+    
+    private var hasNotes: Bool {
+        favorite.resolvedFileType == "md" && !notesManager.notes(forDocumentKey: documentKey).isEmpty
+    }
+    
+    private var showPDFBanner: Bool {
+        favorite.resolvedFileType != "md"
+    }
+    
+    var body: some View {
+        Group {
+            if showPDFBanner {
+                tileBanner(icon: "doc.fill", text: "PDF")
+            } else if hasNotes {
+                tileBanner(icon: "note.text", text: "z notatkami")
+            }
+        }
+    }
+    
+    private func tileBanner(icon: String, text: String) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(isRegularWidth ? .caption.weight(.semibold) : .caption2.weight(.semibold))
+            Text(text)
+                .font(isRegularWidth ? .caption.weight(.semibold) : .caption2.weight(.semibold))
+        }
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, isRegularWidth ? 10 : 8)
+        .padding(.vertical, isRegularWidth ? 5 : 4)
+        .background(
+            Capsule(style: .continuous)
+                .fill(Color(.secondarySystemFill))
+        )
+    }
+}
+
 // MARK: - Document Row Component
 struct DocumentRowView: View {
     let favorite: FavoriteDocument
@@ -558,6 +612,7 @@ struct DocumentRowView: View {
     let isSelected: Bool
     let onTap: () -> Void
     let onSelect: () -> Void
+    let onRequestDelete: (String) -> Void
     @StateObject private var favoritesManager = FavoritesManager.shared
     
     var body: some View {
@@ -582,7 +637,7 @@ struct DocumentRowView: View {
                 NavigationLink(destination: {
                     if let fileURL = favoritesManager.getFavoriteFileURL(id: favorite.id) {
                         if favorite.resolvedFileType == "md" {
-                            MDViewer(title: favorite.title, fileURL: fileURL)
+                            MDViewer(title: favorite.title, fileURL: fileURL, favoriteDocumentId: favorite.id)
                         } else {
                             UnifiedPDFViewer(
                                 title: favorite.title,
@@ -608,7 +663,7 @@ struct DocumentRowView: View {
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                     Button("Usuń") {
-                        favoritesManager.removeFavorite(id: favorite.id)
+                        onRequestDelete(favorite.id)
                     }
                     .tint(.red)
                 }
@@ -622,7 +677,7 @@ struct DocumentRowView: View {
                     }
                     
                     Button("Usuń", role: .destructive) {
-                        favoritesManager.removeFavorite(id: favorite.id)
+                        onRequestDelete(favorite.id)
                     }
                 }
             }
@@ -639,6 +694,7 @@ struct DocumentCardView: View {
     let isSelected: Bool
     let onTap: () -> Void
     let onSelect: () -> Void
+    let onRequestDelete: (String) -> Void
     @StateObject private var favoritesManager = FavoritesManager.shared
     
     var body: some View {
@@ -647,10 +703,12 @@ struct DocumentCardView: View {
                 Button(action: onTap) {
                     VStack(alignment: .leading, spacing: isRegularWidth ? 12 : 8) {
                         // Selection indicator and document icon
-                        HStack {
+                        HStack(alignment: .center, spacing: isRegularWidth ? 10 : 8) {
                             Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                                 .font(isRegularWidth ? .title2 : .title3)
                                 .foregroundColor(isSelected ? .blue : .secondary)
+                            
+                            DocumentTileTopBanners(favorite: favorite, isRegularWidth: isRegularWidth)
                             
                             Spacer()
                             
@@ -687,7 +745,7 @@ struct DocumentCardView: View {
                 NavigationLink(destination: {
                     if let fileURL = favoritesManager.getFavoriteFileURL(id: favorite.id) {
                         if favorite.resolvedFileType == "md" {
-                            MDViewer(title: favorite.title, fileURL: fileURL)
+                            MDViewer(title: favorite.title, fileURL: fileURL, favoriteDocumentId: favorite.id)
                         } else {
                             UnifiedPDFViewer(
                                 title: favorite.title,
@@ -699,10 +757,12 @@ struct DocumentCardView: View {
                     }
                 }) {
                     VStack(alignment: .leading, spacing: isRegularWidth ? 12 : 8) {
-                        HStack {
+                        HStack(alignment: .center, spacing: isRegularWidth ? 10 : 8) {
                             Image(systemName: favorite.resolvedFileType == "md" ? "doc.richtext" : "doc.fill")
                                 .font(isRegularWidth ? .largeTitle : .title2)
                                 .foregroundColor(favorite.resolvedFileType == "md" ? .purple : .blue)
+                            
+                            DocumentTileTopBanners(favorite: favorite, isRegularWidth: isRegularWidth)
                             
                             Spacer()
                         }
@@ -737,7 +797,7 @@ struct DocumentCardView: View {
                     }
                     
                     Button("Usuń", role: .destructive) {
-                        favoritesManager.removeFavorite(id: favorite.id)
+                        onRequestDelete(favorite.id)
                     }
                 }
             }
@@ -793,7 +853,7 @@ struct SelectionModeModifier: ViewModifier {
                     onBulkDelete()
                 }
             } message: {
-                Text("Czy na pewno chcesz usunąć wybrane dokumenty (\(selectedDocumentIds.count))?")
+                Text("Czy na pewno chcesz usunąć wybrane dokumenty (\(selectedDocumentIds.count) szt.)? Stracisz również notatki w nich.")
             }
             .sheet(isPresented: $showingBulkMoveSheet) {
                 BulkMoveFolderSheet(
@@ -808,6 +868,32 @@ struct SelectionModeModifier: ViewModifier {
                     isSelectionMode = false
                     selectedDocumentIds.removeAll()
                 }
+            }
+    }
+}
+
+// MARK: - Single / list delete confirmation (same copy as bulk delete)
+
+struct PendingDocumentDeleteAlertModifier: ViewModifier {
+    @Binding var pendingDeleteDocumentIds: Set<String>
+    let onConfirmDelete: ([String]) -> Void
+    
+    func body(content: Content) -> some View {
+        content
+            .alert("Usuń", isPresented: Binding(
+                get: { !pendingDeleteDocumentIds.isEmpty },
+                set: { if !$0 { pendingDeleteDocumentIds.removeAll() } }
+            )) {
+                Button("Anuluj", role: .cancel) {
+                    pendingDeleteDocumentIds.removeAll()
+                }
+                Button("Usuń", role: .destructive) {
+                    let ids = Array(pendingDeleteDocumentIds)
+                    pendingDeleteDocumentIds.removeAll()
+                    onConfirmDelete(ids)
+                }
+            } message: {
+                Text("Czy na pewno chcesz usunąć wybrany dokument? Stracisz również notatki w nim.")
             }
     }
 }
