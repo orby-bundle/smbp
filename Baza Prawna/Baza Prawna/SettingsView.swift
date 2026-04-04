@@ -337,28 +337,7 @@ struct SettingsView: View {
                     .padding(.horizontal, isRegularWidth ? 24 : 20)
                     .padding(.vertical, isRegularWidth ? 16 : 12)
                 }
-// Temporary Debug Section for testing MDViewer
-                Divider()
-                    .padding(.horizontal, isRegularWidth ? 24 : 20)
 
-                NavigationLink {
-                    MDViewer(resourceName: "DU_2026_1")
-                } label: {
-                    HStack {
-                        Image(systemName: "doc.richtext")
-                            .font(.title3)
-                            .foregroundColor(.blue)
-                        Text("MD Viewer (DU_2026_1)")
-                            .fontWeight(.medium)
-                            .foregroundColor(.primary)
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal, isRegularWidth ? 24 : 20)
-                    .padding(.vertical, isRegularWidth ? 16 : 12)
-                }
             }
             .background(
                 RoundedRectangle(cornerRadius: 12)

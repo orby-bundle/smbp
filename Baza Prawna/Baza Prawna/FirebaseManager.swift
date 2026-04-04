@@ -275,8 +275,18 @@ class FirebaseManager: ObservableObject {
     }
     
     // MARK: - Cloud Storage
-    func getMarkdownDownloadURL(for eli: String) async throws -> URL {
-        // Ensure the user is authenticated before requesting Storage download URL
+    
+    /// Same path layout as `getMarkdownDownloadURL` — e.g. `DU/DU_2026/DU_2026_50.md`.
+    private func markdownStoragePath(for eli: String) -> String? {
+        let parts = eli.components(separatedBy: "/")
+        guard parts.count >= 3 else { return nil }
+        let publisher = parts[0]
+        let year = parts[1]
+        let number = parts[2]
+        return "\(publisher)/\(publisher)_\(year)/\(publisher)_\(year)_\(number).md"
+    }
+    
+    private func ensureSignedInForStorage() async {
         if Auth.auth().currentUser == nil {
             do {
                 let authResult = try await Auth.auth().signInAnonymously()
@@ -285,17 +295,24 @@ class FirebaseManager: ObservableObject {
                 secureLog("Failed to sign in anonymously before storage request: \(error.localizedDescription)")
             }
         }
-        
-        let parts = eli.components(separatedBy: "/")
-        guard parts.count >= 3 else { throw URLError(.badURL) }
-        
-        let publisher = parts[0]
-        let year = parts[1]
-        let number = parts[2]
-        
-        // Structure example: /DU/DU_2026/DU_2026_50.md
-        let path = "\(publisher)/\(publisher)_\(year)/\(publisher)_\(year)_\(number).md"
-        
+    }
+    
+    /// Returns whether the `.md` object exists for this ELI (uses `getMetadata`, same path as download URL).
+    func markdownExistsInStorage(for eli: String) async -> Bool {
+        await ensureSignedInForStorage()
+        guard let path = markdownStoragePath(for: eli) else { return false }
+        let storageRef = Storage.storage().reference().child(path)
+        do {
+            _ = try await storageRef.getMetadata()
+            return true
+        } catch {
+            return false
+        }
+    }
+    
+    func getMarkdownDownloadURL(for eli: String) async throws -> URL {
+        await ensureSignedInForStorage()
+        guard let path = markdownStoragePath(for: eli) else { throw URLError(.badURL) }
         let storageRef = Storage.storage().reference().child(path)
         return try await storageRef.downloadURL()
     }

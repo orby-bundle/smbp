@@ -89,6 +89,7 @@ struct ResultsDUMP_View: View {
 struct ActRowView: View {
     let act: Act
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    @State private var markdownAvailableInBucket: Bool?
     
     // Helper function to check if a date string is in the future
     private func isFutureDate(_ dateString: String) -> Bool {
@@ -116,6 +117,15 @@ struct ActRowView: View {
         let comparisonDate = calendar.startOfDay(for: date)
         
         return comparisonDate > today
+    }
+    
+    @ViewBuilder
+    private var pdfPreviewNavigationDestination: some View {
+        if markdownAvailableInBucket == true {
+            MDViewer(title: act.title ?? act.displayAddress, eli: act.ELI)
+        } else {
+            UnifiedPDFViewer(act: act)
+        }
     }
     
     var body: some View {
@@ -182,7 +192,7 @@ struct ActRowView: View {
                 
                 // Inline PDF preview: top half of the first page.
                 VStack(spacing: 0) {
-                    NavigationLink(destination: UnifiedPDFViewer(act: act)) {
+                    NavigationLink(destination: pdfPreviewNavigationDestination) {
                         PDFPreviewTile(cacheKey: "act_\(act.ELI)", openText: "") {
                             try await APIService.shared.getActText(eli: act.ELI, format: .pdf)
                         }
@@ -193,7 +203,7 @@ struct ActRowView: View {
                         Spacer()
                         
                         NavigationLink(destination: UnifiedPDFViewer(act: act)) {
-                            Text("Zobacz PDF")
+                            Text("Zobaczyć PDF")
                                 .font(horizontalSizeClass == .regular ? .body : .subheadline)
                                 .fontWeight(.medium)
                                 .foregroundColor(.blue)
@@ -201,17 +211,19 @@ struct ActRowView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         
-                        Text("•")
-                            .foregroundColor(.secondary)
-                        
-                        NavigationLink(destination: MDViewer(title: act.title ?? act.displayAddress, eli: act.ELI)) {
-                            Text("Czytaj MD")
-                                .font(horizontalSizeClass == .regular ? .body : .subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.blue)
-                                .underline()
+                        if markdownAvailableInBucket == true {
+                            Text("•")
+                                .foregroundColor(.secondary)
+                            
+                            NavigationLink(destination: MDViewer(title: act.title ?? act.displayAddress, eli: act.ELI)) {
+                                Text("Czytać")
+                                    .font(horizontalSizeClass == .regular ? .body : .subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                                    .underline()
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
-                        .buttonStyle(PlainButtonStyle())
                     }
                     .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
                     .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
@@ -223,6 +235,13 @@ struct ActRowView: View {
         .background(Color(.systemBackground))
         .cornerRadius(horizontalSizeClass == .regular ? 12 : 8)
         .shadow(color: .black.opacity(0.08), radius: horizontalSizeClass == .regular ? 3 : 2, x: 0, y: 1)
+        .onAppear {
+            guard markdownAvailableInBucket == nil else { return }
+            Task {
+                let exists = await FirebaseManager.shared.markdownExistsInStorage(for: act.ELI)
+                await MainActor.run { markdownAvailableInBucket = exists }
+            }
+        }
     }
 }
 
