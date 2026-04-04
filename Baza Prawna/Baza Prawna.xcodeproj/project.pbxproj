@@ -1,0 +1,776 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		DA02E7B32F33456800ECC705 /* PostHog in Frameworks */ = {isa = PBXBuildFile; productRef = DA02E7B22F33456800ECC705 /* PostHog */; };
+		DA0B96182EAA39FC0089B5C5 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = DA0B96172EAA39FC0089B5C5 /* FirebaseAuth */; };
+		DA5D91E42EAC0EF6006ADCEC /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DA5D91E32EAC0EF6006ADCEC /* StoreKit.framework */; };
+		DA92A67D2EAA75C000A9D1BC /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = DA92A67C2EAA75C000A9D1BC /* FirebaseFirestore */; };
+		DAA1F9462EA2292400736605 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = DAA1F9452EA2292400736605 /* GoogleService-Info.plist */; };
+		DAA1F9472EA2292400736605 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = DAA1F9452EA2292400736605 /* GoogleService-Info.plist */; };
+		DAA1F9482EA2292400736605 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = DAA1F9452EA2292400736605 /* GoogleService-Info.plist */; };
+		DAA1F9532EA22A5300736605 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = DAA1F9522EA22A5300736605 /* FirebaseAppCheck */; };
+		DAA1F9582EA238EA00736605 /* UserNotificationsUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DAA1F9562EA238EA00736605 /* UserNotificationsUI.framework */; };
+		DAA1F9592EA238EA00736605 /* UserNotifications.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DAA1F9572EA238EA00736605 /* UserNotifications.framework */; };
+		DAA1F9612EA247C200736605 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = DAA1F9602EA247C200736605 /* FirebaseMessaging */; };
+		DAE2F4E92EAED6820065F7D5 /* SM Baza Prawna.storekit in Resources */ = {isa = PBXBuildFile; fileRef = DAE2F4E82EAED6820065F7D5 /* SM Baza Prawna.storekit */; };
+		DAE2F4EA2EAED6820065F7D5 /* SM Baza Prawna.storekit in Resources */ = {isa = PBXBuildFile; fileRef = DAE2F4E82EAED6820065F7D5 /* SM Baza Prawna.storekit */; };
+		DAE2F4EB2EAED6820065F7D5 /* SM Baza Prawna.storekit in Resources */ = {isa = PBXBuildFile; fileRef = DAE2F4E82EAED6820065F7D5 /* SM Baza Prawna.storekit */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		DA3AD46C2E96AE9C00779DED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DA3AD4542E96AE9B00779DED /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DA3AD45B2E96AE9B00779DED;
+			remoteInfo = "Baza Prawna";
+		};
+		DA3AD4762E96AE9C00779DED /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DA3AD4542E96AE9B00779DED /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = DA3AD45B2E96AE9B00779DED;
+			remoteInfo = "Baza Prawna";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		DA3AD45C2E96AE9B00779DED /* Baza Prawna.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Baza Prawna.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA3AD46B2E96AE9C00779DED /* Baza PrawnaTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Baza PrawnaTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA3AD4752E96AE9C00779DED /* Baza PrawnaUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Baza PrawnaUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		DA5D91E32EAC0EF6006ADCEC /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		DAA1F9452EA2292400736605 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		DAA1F9562EA238EA00736605 /* UserNotificationsUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotificationsUI.framework; path = System/Library/Frameworks/UserNotificationsUI.framework; sourceTree = SDKROOT; };
+		DAA1F9572EA238EA00736605 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
+		DAE2F4E82EAED6820065F7D5 /* SM Baza Prawna.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "SM Baza Prawna.storekit"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		DA3AD45E2E96AE9B00779DED /* Baza Prawna */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Baza Prawna";
+			sourceTree = "<group>";
+		};
+		DA3AD46E2E96AE9C00779DED /* Baza PrawnaTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Baza PrawnaTests";
+			sourceTree = "<group>";
+		};
+		DA3AD4782E96AE9C00779DED /* Baza PrawnaUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Baza PrawnaUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		DA3AD4592E96AE9B00779DED /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAA1F9612EA247C200736605 /* FirebaseMessaging in Frameworks */,
+				DAA1F9582EA238EA00736605 /* UserNotificationsUI.framework in Frameworks */,
+				DA92A67D2EAA75C000A9D1BC /* FirebaseFirestore in Frameworks */,
+				DA02E7B32F33456800ECC705 /* PostHog in Frameworks */,
+				DA0B96182EAA39FC0089B5C5 /* FirebaseAuth in Frameworks */,
+				DAA1F9532EA22A5300736605 /* FirebaseAppCheck in Frameworks */,
+				DAA1F9592EA238EA00736605 /* UserNotifications.framework in Frameworks */,
+				DA5D91E42EAC0EF6006ADCEC /* StoreKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DA3AD4682E96AE9C00779DED /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DA3AD4722E96AE9C00779DED /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		DA3AD4532E96AE9B00779DED = {
+			isa = PBXGroup;
+			children = (
+				DAE2F4E82EAED6820065F7D5 /* SM Baza Prawna.storekit */,
+				DA3AD45E2E96AE9B00779DED /* Baza Prawna */,
+				DA3AD46E2E96AE9C00779DED /* Baza PrawnaTests */,
+				DA3AD4782E96AE9C00779DED /* Baza PrawnaUITests */,
+				DA3AD45D2E96AE9B00779DED /* Products */,
+				DAA1F9452EA2292400736605 /* GoogleService-Info.plist */,
+				DAA1F9552EA238EA00736605 /* Frameworks */,
+			);
+			sourceTree = "<group>";
+		};
+		DA3AD45D2E96AE9B00779DED /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				DA3AD45C2E96AE9B00779DED /* Baza Prawna.app */,
+				DA3AD46B2E96AE9C00779DED /* Baza PrawnaTests.xctest */,
+				DA3AD4752E96AE9C00779DED /* Baza PrawnaUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DAA1F9552EA238EA00736605 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				DA5D91E32EAC0EF6006ADCEC /* StoreKit.framework */,
+				DAA1F9572EA238EA00736605 /* UserNotifications.framework */,
+				DAA1F9562EA238EA00736605 /* UserNotificationsUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		DA3AD45B2E96AE9B00779DED /* Baza Prawna */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DA3AD47F2E96AE9C00779DED /* Build configuration list for PBXNativeTarget "Baza Prawna" */;
+			buildPhases = (
+				DA3AD4582E96AE9B00779DED /* Sources */,
+				DA3AD4592E96AE9B00779DED /* Frameworks */,
+				DA3AD45A2E96AE9B00779DED /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				DA3AD45E2E96AE9B00779DED /* Baza Prawna */,
+			);
+			name = "Baza Prawna";
+			packageProductDependencies = (
+				DAA1F9522EA22A5300736605 /* FirebaseAppCheck */,
+				DAA1F9602EA247C200736605 /* FirebaseMessaging */,
+				DA0B96172EAA39FC0089B5C5 /* FirebaseAuth */,
+				DA92A67C2EAA75C000A9D1BC /* FirebaseFirestore */,
+				DA02E7B22F33456800ECC705 /* PostHog */,
+			);
+			productName = "Baza Prawna";
+			productReference = DA3AD45C2E96AE9B00779DED /* Baza Prawna.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DA3AD46A2E96AE9C00779DED /* Baza PrawnaTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DA3AD4822E96AE9C00779DED /* Build configuration list for PBXNativeTarget "Baza PrawnaTests" */;
+			buildPhases = (
+				DA3AD4672E96AE9C00779DED /* Sources */,
+				DA3AD4682E96AE9C00779DED /* Frameworks */,
+				DA3AD4692E96AE9C00779DED /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DA3AD46D2E96AE9C00779DED /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DA3AD46E2E96AE9C00779DED /* Baza PrawnaTests */,
+			);
+			name = "Baza PrawnaTests";
+			packageProductDependencies = (
+			);
+			productName = "Baza PrawnaTests";
+			productReference = DA3AD46B2E96AE9C00779DED /* Baza PrawnaTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		DA3AD4742E96AE9C00779DED /* Baza PrawnaUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DA3AD4852E96AE9C00779DED /* Build configuration list for PBXNativeTarget "Baza PrawnaUITests" */;
+			buildPhases = (
+				DA3AD4712E96AE9C00779DED /* Sources */,
+				DA3AD4722E96AE9C00779DED /* Frameworks */,
+				DA3AD4732E96AE9C00779DED /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				DA3AD4772E96AE9C00779DED /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				DA3AD4782E96AE9C00779DED /* Baza PrawnaUITests */,
+			);
+			name = "Baza PrawnaUITests";
+			packageProductDependencies = (
+			);
+			productName = "Baza PrawnaUITests";
+			productReference = DA3AD4752E96AE9C00779DED /* Baza PrawnaUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DA3AD4542E96AE9B00779DED /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					DA3AD45B2E96AE9B00779DED = {
+						CreatedOnToolsVersion = 26.0.1;
+					};
+					DA3AD46A2E96AE9C00779DED = {
+						CreatedOnToolsVersion = 26.0.1;
+						TestTargetID = DA3AD45B2E96AE9B00779DED;
+					};
+					DA3AD4742E96AE9C00779DED = {
+						CreatedOnToolsVersion = 26.0.1;
+						TestTargetID = DA3AD45B2E96AE9B00779DED;
+					};
+				};
+			};
+			buildConfigurationList = DA3AD4572E96AE9B00779DED /* Build configuration list for PBXProject "Baza Prawna" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = DA3AD4532E96AE9B00779DED;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				DAA1F9492EA229BC00736605 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				DA02E7B12F33456800ECC705 /* XCRemoteSwiftPackageReference "posthog-ios" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = DA3AD45D2E96AE9B00779DED /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				DA3AD45B2E96AE9B00779DED /* Baza Prawna */,
+				DA3AD46A2E96AE9C00779DED /* Baza PrawnaTests */,
+				DA3AD4742E96AE9C00779DED /* Baza PrawnaUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		DA3AD45A2E96AE9B00779DED /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAE2F4E92EAED6820065F7D5 /* SM Baza Prawna.storekit in Resources */,
+				DAA1F9462EA2292400736605 /* GoogleService-Info.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DA3AD4692E96AE9C00779DED /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAA1F9472EA2292400736605 /* GoogleService-Info.plist in Resources */,
+				DAE2F4EB2EAED6820065F7D5 /* SM Baza Prawna.storekit in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DA3AD4732E96AE9C00779DED /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DAA1F9482EA2292400736605 /* GoogleService-Info.plist in Resources */,
+				DAE2F4EA2EAED6820065F7D5 /* SM Baza Prawna.storekit in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		DA3AD4582E96AE9B00779DED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DA3AD4672E96AE9C00779DED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DA3AD4712E96AE9C00779DED /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		DA3AD46D2E96AE9C00779DED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DA3AD45B2E96AE9B00779DED /* Baza Prawna */;
+			targetProxy = DA3AD46C2E96AE9C00779DED /* PBXContainerItemProxy */;
+		};
+		DA3AD4772E96AE9C00779DED /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = DA3AD45B2E96AE9B00779DED /* Baza Prawna */;
+			targetProxy = DA3AD4762E96AE9C00779DED /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		DA3AD47D2E96AE9C00779DED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = HRFV7JTS74;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		DA3AD47E2E96AE9C00779DED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = HRFV7JTS74;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		DA3AD4802E96AE9C00779DED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = "Baza Prawna/Baza Prawna.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HRFV7JTS74;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Baza-Prawna-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "SM Baza Prawa";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "SMBP Launch Screen";
+				INFOPLIST_KEY_UIStatusBarHidden = NO;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.7;
+				PRODUCT_BUNDLE_IDENTIFIER = "Shablyka.Baza-Prawna";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		DA3AD4812E96AE9C00779DED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
+				AUTOMATION_APPLE_EVENTS = NO;
+				CODE_SIGN_ENTITLEMENTS = "Baza Prawna/Baza Prawna.entitlements";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HRFV7JTS74;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Baza-Prawna-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "SM Baza Prawa";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = "SMBP Launch Screen";
+				INFOPLIST_KEY_UIStatusBarHidden = NO;
+				INFOPLIST_KEY_UIStatusBarStyle = "";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MARKETING_VERSION = 1.0.7;
+				PRODUCT_BUNDLE_IDENTIFIER = "Shablyka.Baza-Prawna";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
+				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
+				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
+				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
+				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
+				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		DA3AD4832E96AE9C00779DED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HRFV7JTS74;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Shablyka.Baza-PrawnaTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Baza Prawna.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Baza Prawna";
+			};
+			name = Debug;
+		};
+		DA3AD4842E96AE9C00779DED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HRFV7JTS74;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Shablyka.Baza-PrawnaTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Baza Prawna.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Baza Prawna";
+			};
+			name = Release;
+		};
+		DA3AD4862E96AE9C00779DED /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HRFV7JTS74;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Shablyka.Baza-PrawnaUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Baza Prawna";
+			};
+			name = Debug;
+		};
+		DA3AD4872E96AE9C00779DED /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = HRFV7JTS74;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "Shablyka.Baza-PrawnaUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = "Baza Prawna";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		DA3AD4572E96AE9B00779DED /* Build configuration list for PBXProject "Baza Prawna" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DA3AD47D2E96AE9C00779DED /* Debug */,
+				DA3AD47E2E96AE9C00779DED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DA3AD47F2E96AE9C00779DED /* Build configuration list for PBXNativeTarget "Baza Prawna" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DA3AD4802E96AE9C00779DED /* Debug */,
+				DA3AD4812E96AE9C00779DED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DA3AD4822E96AE9C00779DED /* Build configuration list for PBXNativeTarget "Baza PrawnaTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DA3AD4832E96AE9C00779DED /* Debug */,
+				DA3AD4842E96AE9C00779DED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		DA3AD4852E96AE9C00779DED /* Build configuration list for PBXNativeTarget "Baza PrawnaUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DA3AD4862E96AE9C00779DED /* Debug */,
+				DA3AD4872E96AE9C00779DED /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		DA02E7B12F33456800ECC705 /* XCRemoteSwiftPackageReference "posthog-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/PostHog/posthog-ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.39.0;
+			};
+		};
+		DAA1F9492EA229BC00736605 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.4.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		DA02E7B22F33456800ECC705 /* PostHog */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DA02E7B12F33456800ECC705 /* XCRemoteSwiftPackageReference "posthog-ios" */;
+			productName = PostHog;
+		};
+		DA0B96172EAA39FC0089B5C5 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAA1F9492EA229BC00736605 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		DA92A67C2EAA75C000A9D1BC /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAA1F9492EA229BC00736605 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		DAA1F9522EA22A5300736605 /* FirebaseAppCheck */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAA1F9492EA229BC00736605 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAppCheck;
+		};
+		DAA1F9602EA247C200736605 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DAA1F9492EA229BC00736605 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = DA3AD4542E96AE9B00779DED /* Project object */;
+}

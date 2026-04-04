@@ -1,0 +1,55 @@
+{
+  "configurations" : [
+    {
+      "id" : "B83F0E39-1368-477B-A4D0-805A73C56387",
+      "name" : "Test Scheme Action",
+      "options" : {
+        "targetForVariableExpansion" : {
+          "containerPath" : "container:Baza Prawna.xcodeproj",
+          "identifier" : "DA3AD45B2E96AE9B00779DED",
+          "name" : "Baza Prawna"
+        }
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "language" : "pl",
+    "locationScenario" : {
+      "identifier" : "Warsaw, Poland",
+      "referenceType" : "built-in"
+    },
+    "performanceAntipatternCheckerEnabled" : true,
+    "region" : "PL",
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Baza Prawna.xcodeproj",
+      "identifier" : "DA3AD45B2E96AE9B00779DED",
+      "name" : "Baza Prawna"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "skippedTests" : {
+        "suites" : [
+          {
+            "name" : "Baza_PrawnaTests"
+          }
+        ]
+      },
+      "target" : {
+        "containerPath" : "container:Baza Prawna.xcodeproj",
+        "identifier" : "DA3AD46A2E96AE9C00779DED",
+        "name" : "Baza PrawnaTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Baza Prawna.xcodeproj",
+        "identifier" : "DA3AD4742E96AE9C00779DED",
+        "name" : "Baza PrawnaUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
