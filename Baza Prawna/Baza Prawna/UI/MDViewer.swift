@@ -370,15 +370,19 @@ struct MarkdownWebView: UIViewRepresentable {
     @Binding var scrollToID: String?
     let onSearchResults: (Int, Int) -> Void
     let onCoordinatorReady: (Coordinator) -> Void
+    /// Called on the main queue when `loadHTMLString` navigation finishes (document ready to display).
+    let onDocumentLoaded: (() -> Void)?
 
     init(html: String,
          scrollToID: Binding<String?>,
          onSearchResults: @escaping (Int, Int) -> Void = { _, _ in },
-         onCoordinatorReady: @escaping (Coordinator) -> Void = { _ in }) {
+         onCoordinatorReady: @escaping (Coordinator) -> Void = { _ in },
+         onDocumentLoaded: (() -> Void)? = nil) {
         self.html = html
         self._scrollToID = scrollToID
         self.onSearchResults = onSearchResults
         self.onCoordinatorReady = onCoordinatorReady
+        self.onDocumentLoaded = onDocumentLoaded
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -491,6 +495,11 @@ struct MarkdownWebView: UIViewRepresentable {
                 pendingSearchText = nil
                 performSearch(text)
             }
+            if let onDocumentLoaded = parent.onDocumentLoaded {
+                DispatchQueue.main.async {
+                    onDocumentLoaded()
+                }
+            }
         }
     }
 }
@@ -552,6 +561,7 @@ struct MDViewer: View {
     @State private var tocEntries: [MDTOCEntry] = []
     @State private var showTOC = false
     @State private var scrollToID: String?
+    /// True until markdown is fetched and the WebView has finished loading the HTML (avoids a blank gap after network load).
     @State private var isLoading = true
     @State private var errorMessage: String?
 
@@ -612,16 +622,7 @@ struct MDViewer: View {
             }
 
             ZStack {
-                if isLoading {
-                    VStack(spacing: 20) {
-                        ProgressView()
-                            .progressViewStyle(.circular)
-                            .scaleEffect(1.5)
-                        Text("Ładowanie dokumentu…")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                    }
-                } else if let error = errorMessage {
+                if let error = errorMessage {
                     VStack(spacing: 20) {
                         Image(systemName: "exclamationmark.triangle")
                             .font(.system(size: 50))
@@ -632,19 +633,48 @@ struct MDViewer: View {
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
                     }
+                } else if htmlContent.isEmpty {
+                    VStack(spacing: 20) {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .scaleEffect(1.5)
+                        Text("Ładowanie dokumentu…")
+                            .font(.headline)
+                            .foregroundColor(.secondary)
+                    }
                 } else {
-                    MarkdownWebView(
-                        html: htmlContent,
-                        scrollToID: $scrollToID,
-                        onSearchResults: { count, index in
-                            searchResultsCount = count
-                            currentMatchIndex = index
-                        },
-                        onCoordinatorReady: { coordinator in
-                            webViewCoordinator = coordinator
+                    ZStack {
+                        MarkdownWebView(
+                            html: htmlContent,
+                            scrollToID: $scrollToID,
+                            onSearchResults: { count, index in
+                                searchResultsCount = count
+                                currentMatchIndex = index
+                            },
+                            onCoordinatorReady: { coordinator in
+                                webViewCoordinator = coordinator
+                            },
+                            onDocumentLoaded: {
+                                isLoading = false
+                            }
+                        )
+                        .opacity(isLoading ? 0.001 : 1)
+                        .ignoresSafeArea(.container, edges: .bottom)
+
+                        if isLoading {
+                            VStack(spacing: 20) {
+                                ProgressView()
+                                    .progressViewStyle(.circular)
+                                    .scaleEffect(1.5)
+                                Text("Ładowanie dokumentu…")
+                                    .font(.headline)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .background(Color(.systemBackground))
+                            .allowsHitTesting(true)
                         }
-                    )
-                    .ignoresSafeArea(.container, edges: .bottom)
+                    }
                 }
             }
         }
@@ -758,7 +788,7 @@ struct MDViewer: View {
                 await MainActor.run {
                     self.tocEntries = extractedTOC
                     self.htmlContent = html
-                    self.isLoading = false
+                    // Keep isLoading true until MarkdownWebView reports WKWebView didFinish
                 }
             } catch {
                 await MainActor.run {
