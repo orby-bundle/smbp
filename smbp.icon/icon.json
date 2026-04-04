@@ -1,0 +1,68 @@
+{
+  "color-space-for-untagged-svg-colors" : "display-p3",
+  "fill" : {
+    "linear-gradient" : [
+      "display-p3:0.32360,0.49594,0.70624,1.00000",
+      "srgb:0.00000,0.32852,0.57488,1.00000"
+    ]
+  },
+  "groups" : [
+    {
+      "layers" : [
+        {
+          "blend-mode" : "overlay",
+          "fill-specializations" : [
+            {
+              "value" : {
+                "automatic-gradient" : "srgb:1.00000,1.00000,1.00000,1.00000"
+              }
+            },
+            {
+              "appearance" : "dark",
+              "value" : {
+                "automatic-gradient" : "srgb:0.00000,0.58980,1.00000,1.00000"
+              }
+            }
+          ],
+          "glass" : false,
+          "image-name" : "smbp-logo-removebg-preview.png",
+          "name" : "smbp-logo-removebg-preview",
+          "position-specializations" : [
+            {
+              "value" : {
+                "scale" : 2.15,
+                "translation-in-points" : [
+                  14,
+                  41
+                ]
+              }
+            },
+            {
+              "idiom" : "iOS",
+              "value" : {
+                "scale" : 2.15,
+                "translation-in-points" : [
+                  17,
+                  41
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "shadow" : {
+        "kind" : "neutral",
+        "opacity" : 0.5
+      },
+      "translucency" : {
+        "enabled" : true,
+        "value" : 0.5
+      }
+    }
+  ],
+  "supported-platforms" : {
+    "squares" : [
+      "iOS"
+    ]
+  }
+}

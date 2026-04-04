@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="24128" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="24063"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
+        <capability name="System colors" minToolsVersion="11.0"/>
+    </dependencies>
+    <scenes>
+        <!--View Controller-->
+        <scene sceneID="EHf-IW-A2E">
+            <objects>
+                <viewController id="01J-lp-oVM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <!-- 50/50 Gradient Background (static) -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="top-bg">
+                                <rect key="frame" x="0.0" y="0.0" width="393" height="426"/>
+                                <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                            </view>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bottom-bg">
+                                <rect key="frame" x="0.0" y="426" width="393" height="426"/>
+                                <color key="backgroundColor" red="1" green="0.23137254901960785" blue="0.18823529411764706" alpha="0.97" colorSpace="custom" customColorSpace="sRGB"/>
+                            </view>
+                            <!-- Main Container for Centered Content -->
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="container-view">
+                                <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                                <subviews>
+                                    <!-- App Icon Placeholder -->
+                                    <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="app-icon-container">
+                                        <rect key="frame" x="146.66666666666666" y="300" width="100" height="100"/>
+                                        <subviews>
+                                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="⚖️" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="9" translatesAutoresizingMaskIntoConstraints="NO" id="app-icon-emoji">
+                                                <rect key="frame" x="0.0" y="0.0" width="100" height="100"/>
+                                                <fontDescription key="fontDescription" type="system" pointSize="60"/>
+                                                <color key="textColor" systemColor="systemBlueColor"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                        </subviews>
+                                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="100" id="icon-width"/>
+                                            <constraint firstAttribute="height" constant="100" id="icon-height"/>
+                                            <constraint firstItem="app-icon-emoji" firstAttribute="centerX" secondItem="app-icon-container" secondAttribute="centerX" id="emoji-centerX"/>
+                                            <constraint firstItem="app-icon-emoji" firstAttribute="centerY" secondItem="app-icon-container" secondAttribute="centerY" id="emoji-centerY"/>
+                                            <constraint firstItem="app-icon-emoji" firstAttribute="leading" secondItem="app-icon-container" secondAttribute="leading" id="emoji-leading"/>
+                                            <constraint firstItem="app-icon-container" firstAttribute="trailing" secondItem="app-icon-emoji" secondAttribute="trailing" id="emoji-trailing"/>
+                                            <constraint firstItem="app-icon-container" firstAttribute="bottom" secondItem="app-icon-emoji" secondAttribute="bottom" id="emoji-bottom"/>
+                                            <constraint firstItem="app-icon-emoji" firstAttribute="top" secondItem="app-icon-container" secondAttribute="top" id="emoji-top"/>
+                                        </constraints>
+                                    </view>
+                                    <!-- App Title -->
+                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="SM Baza Prawa" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="18" translatesAutoresizingMaskIntoConstraints="NO" id="app-title">
+                                        <rect key="frame" x="20" y="420" width="353" height="43"/>
+                                        <fontDescription key="fontDescription" type="boldSystem" pointSize="36"/>
+                                        <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                    <!-- Loading Text -->
+                                    <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Ładowanie..." textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumFontSize="12" translatesAutoresizingMaskIntoConstraints="NO" id="loading-label">
+                                        <rect key="frame" x="20" y="483" width="353" height="21"/>
+                                        <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                        <color key="textColor" red="1" green="1" blue="1" alpha="0.80000000000000004" colorSpace="custom" customColorSpace="sRGB"/>
+                                        <nil key="highlightedColor"/>
+                                    </label>
+                                </subviews>
+                                <color key="backgroundColor" red="1" green="1" blue="1" alpha="0" colorSpace="custom" customColorSpace="sRGB"/>
+                            </view>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="Bcu-3y-fUS"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <constraints>
+                            <!-- Static 50/50 background constraints -->
+                            <constraint firstItem="top-bg" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="top-bg-top"/>
+                            <constraint firstItem="top-bg" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="top-bg-leading"/>
+                            <constraint firstItem="Ze5-6b-2t3" firstAttribute="trailing" secondItem="top-bg" secondAttribute="trailing" id="top-bg-trailing"/>
+                            <constraint firstItem="bottom-bg" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="bottom-bg-leading"/>
+                            <constraint firstItem="Ze5-6b-2t3" firstAttribute="trailing" secondItem="bottom-bg" secondAttribute="trailing" id="bottom-bg-trailing"/>
+                            <constraint firstItem="Ze5-6b-2t3" firstAttribute="bottom" secondItem="bottom-bg" secondAttribute="bottom" id="bottom-bg-bottom"/>
+                            <constraint firstItem="bottom-bg" firstAttribute="top" secondItem="top-bg" secondAttribute="bottom" id="bg-vertical-stack"/>
+                            <constraint firstItem="top-bg" firstAttribute="height" secondItem="Ze5-6b-2t3" secondAttribute="height" multiplier="0.5" id="top-bg-half-height"/>
+                            <constraint firstItem="bottom-bg" firstAttribute="height" secondItem="Ze5-6b-2t3" secondAttribute="height" multiplier="0.5" id="bottom-bg-half-height"/>
+                            <!-- Container View Constraints -->
+                            <constraint firstItem="container-view" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="container-top"/>
+                            <constraint firstItem="container-view" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="container-leading"/>
+                            <constraint firstItem="container-view" firstAttribute="trailing" secondItem="Ze5-6b-2t3" secondAttribute="trailing" id="container-trailing"/>
+                            <constraint firstItem="container-view" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="container-bottom"/>
+                            
+                            <!-- App Icon Constraints -->
+                            <constraint firstItem="app-icon-container" firstAttribute="centerX" secondItem="container-view" secondAttribute="centerX" id="icon-centerX"/>
+                            <constraint firstItem="app-icon-container" firstAttribute="centerY" secondItem="container-view" secondAttribute="centerY" constant="-60" id="icon-centerY"/>
+                            
+                            <!-- App Title Constraints -->
+                            <constraint firstItem="app-title" firstAttribute="top" secondItem="app-icon-container" secondAttribute="bottom" constant="20" id="title-top"/>
+                            <constraint firstItem="app-title" firstAttribute="centerX" secondItem="container-view" secondAttribute="centerX" id="title-centerX"/>
+                            <constraint firstItem="app-title" firstAttribute="leading" secondItem="container-view" secondAttribute="leading" constant="20" id="title-leading"/>
+                            <constraint firstItem="container-view" firstAttribute="trailing" secondItem="app-title" secondAttribute="trailing" constant="20" id="title-trailing"/>
+                            
+                            <!-- Loading Label Constraints -->
+                            <constraint firstItem="loading-label" firstAttribute="top" secondItem="app-title" secondAttribute="bottom" constant="20" id="loading-top"/>
+                            <constraint firstItem="loading-label" firstAttribute="centerX" secondItem="container-view" secondAttribute="centerX" id="loading-centerX"/>
+                            <constraint firstItem="loading-label" firstAttribute="leading" secondItem="container-view" secondAttribute="leading" constant="20" id="loading-leading"/>
+                            <constraint firstItem="container-view" firstAttribute="trailing" secondItem="loading-label" secondAttribute="trailing" constant="20" id="loading-trailing"/>
+                            
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iYj-Kq-Ea1" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="53" y="375"/>
+        </scene>
+    </scenes>
+    <resources>
+        <systemColor name="labelColor">
+            <color red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="secondaryLabelColor">
+            <color red="0.23529411764705882" green="0.23529411764705882" blue="0.2627450980392157" alpha="0.59999999999999998" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemBackgroundColor">
+            <color red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemBlueColor">
+            <color red="0.0" green="0.47843137254901963" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+        <systemColor name="systemGray6Color">
+            <color red="0.94901960784313721" green="0.94901960784313721" blue="0.96862745098039216" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </systemColor>
+    </resources>
+</document>

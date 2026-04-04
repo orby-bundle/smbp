@@ -1,0 +1,20 @@
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: alert-scheduler
+  namespace: smbp-ios
+spec:
+  template:
+    spec:
+      template:
+        spec:
+          containers:
+          - image: gcr.io/smbp-ios/alert-scheduler
+            resources:
+              limits:
+                memory: 1Gi
+            env:
+            - name: FIREBASE_CREDENTIALS_JSON
+              value: "PLACEHOLDER"
+      parallelism: 1
+      taskCount: 1

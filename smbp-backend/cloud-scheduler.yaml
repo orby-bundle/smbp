@@ -1,0 +1,15 @@
+# cloud-scheduler.yaml
+apiVersion: cloud.google.com/v1
+kind: Job
+metadata:
+  name: alert-scheduler
+spec:
+  schedule: "*/30 * * * *"  # Every 30 minutes
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: alert-scheduler
+            image: gcr.io/PROJECT_ID/alert-scheduler
+            command: ["python", "alert_scheduler.py"]
