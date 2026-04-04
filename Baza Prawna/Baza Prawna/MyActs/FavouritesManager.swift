@@ -31,13 +31,19 @@ struct FavoriteDocument: Identifiable, Codable {
     let dateAdded: Date
     let fileName: String // stored in Documents/favorites/
     let folderId: String? // nil for root folder
+    let fileType: String? // "pdf", "md", etc. — nil defaults to "pdf" for backward compatibility
     
-    init(id: String = UUID().uuidString, title: String, dateAdded: Date = Date(), fileName: String, folderId: String? = nil) {
+    var resolvedFileType: String {
+        fileType ?? "pdf"
+    }
+    
+    init(id: String = UUID().uuidString, title: String, dateAdded: Date = Date(), fileName: String, folderId: String? = nil, fileType: String? = nil) {
         self.id = id
         self.title = title
         self.dateAdded = dateAdded
         self.fileName = fileName
         self.folderId = folderId
+        self.fileType = fileType
     }
 }
 
@@ -123,7 +129,8 @@ final class FavoritesManager: ObservableObject {
                 title: favorite.title,
                 dateAdded: favorite.dateAdded,
                 fileName: favorite.fileName,
-                folderId: folderId
+                folderId: folderId,
+                fileType: favorite.fileType
             )
             saveFavorites()
         }
@@ -139,24 +146,22 @@ final class FavoritesManager: ObservableObject {
     
     // MARK: - Document Management
     
-    func addFavorite(title: String, pdfData: Data, folderId: String? = nil) {
+    func addFavorite(title: String, pdfData: Data, folderId: String? = nil, fileExtension: String = "pdf") {
         let favoriteID = UUID().uuidString
-        let fileName = "\(favoriteID).pdf"
+        let fileName = "\(favoriteID).\(fileExtension)"
         let fileURL = favoritesDirectory.appendingPathComponent(fileName)
         
         do {
-            // Copy PDF data to favorites directory
             try pdfData.write(to: fileURL)
             
-            // Create favorite document
             let favorite = FavoriteDocument(
                 id: favoriteID,
                 title: title,
                 fileName: fileName,
-                folderId: folderId
+                folderId: folderId,
+                fileType: fileExtension
             )
             
-            // Add to favorites list
             favorites.append(favorite)
             saveFavorites()
             
@@ -246,16 +251,14 @@ final class FavoritesManager: ObservableObject {
                     continue
                 }
                 
-                // Determine the destination path based on folder structure
+                let ext = favorite.resolvedFileType
                 let destinationPath: String
                 if let folderId = favorite.folderId,
                    let folder = folders.first(where: { $0.id == folderId }) {
-                    // Create folder structure: FolderName/DocumentName.pdf
                     let sanitizedFolderName = sanitizeFileName(folder.name)
-                    destinationPath = "\(sanitizedFolderName)/\(sanitizedTitle).pdf"
+                    destinationPath = "\(sanitizedFolderName)/\(sanitizedTitle).\(ext)"
                 } else {
-                    // Root documents: DocumentName.pdf
-                    destinationPath = "\(sanitizedTitle).pdf"
+                    destinationPath = "\(sanitizedTitle).\(ext)"
                 }
                 
                 let destinationFileURL = tempWorkingDirectory.appendingPathComponent(destinationPath)
