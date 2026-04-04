@@ -434,7 +434,6 @@ struct UnifiedPDFViewer: View {
         if let id = favoritesManager.getFavoriteID(title: title) {
             favoritesManager.removeFavorite(id: id)
             isFavorited = false
-            dismiss()
         }
     }
     

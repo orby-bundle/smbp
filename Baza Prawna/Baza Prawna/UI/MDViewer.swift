@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 import WebKit
 
 // MARK: - Table of Contents Entry
@@ -198,6 +199,7 @@ enum MarkdownRenderer {
         <body>
         \(body)
         \(searchJS)
+        \(notesJS)
         </body>
         </html>
         """
@@ -360,7 +362,219 @@ enum MarkdownRenderer {
         background-color: #FFD700;
         color: #000;
     }
+
+    mark.user-note-highlight {
+        background-color: rgba(255, 200, 0, 0.42);
+        color: inherit;
+        padding: 1px 2px;
+        border-radius: 2px;
+    }
+    @media (prefers-color-scheme: dark) {
+        mark.user-note-highlight {
+            background-color: rgba(255, 200, 50, 0.32);
+        }
+    }
     """
+}
+
+// MARK: - Injected notes script (text quote + mark)
+
+extension MarkdownRenderer {
+    fileprivate static let notesJS = """
+    <script>
+    (function() {
+    function scriptStyleFilter(node) {
+        let p = node.parentElement;
+        while (p) {
+            const t = p.tagName;
+            if (t === 'SCRIPT' || t === 'STYLE' || t === 'NOSCRIPT') return NodeFilter.FILTER_REJECT;
+            p = p.parentElement;
+        }
+        return NodeFilter.FILTER_ACCEPT;
+    }
+
+    function bodyPlainString() {
+        const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: scriptStyleFilter });
+        let s = '';
+        while (w.nextNode()) s += w.currentNode.textContent;
+        return s;
+    }
+
+    function plainOffsetForBoundary(container, offset) {
+        if (container.nodeType === Node.TEXT_NODE) {
+            const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: scriptStyleFilter });
+            let pos = 0;
+            while (w.nextNode()) {
+                const n = w.currentNode;
+                if (n === container) return pos + Math.min(offset, n.textContent.length);
+                pos += n.textContent.length;
+            }
+        }
+        const r = document.createRange();
+        r.setStart(document.body, 0);
+        r.setEnd(container, offset);
+        return r.toString().length;
+    }
+
+    function nearestHeadingId(range) {
+        let n = range.commonAncestorContainer;
+        if (n.nodeType !== Node.ELEMENT_NODE) n = n.parentElement;
+        while (n && n !== document.body) {
+            if (n.tagName && /^H[1-6]$/i.test(n.tagName)) {
+                return n.id || null;
+            }
+            n = n.parentElement;
+        }
+        return null;
+    }
+
+    function getSelectionPayload() {
+        const sel = window.getSelection();
+        if (!sel || sel.rangeCount === 0) return null;
+        const range = sel.getRangeAt(0);
+        if (range.collapsed) return null;
+        const start = plainOffsetForBoundary(range.startContainer, range.startOffset);
+        const end = plainOffsetForBoundary(range.endContainer, range.endOffset);
+        const full = bodyPlainString();
+        if (start > end || end > full.length) return null;
+        const exact = full.substring(start, end);
+        if (!exact.trim()) return null;
+        const prefix = full.substring(Math.max(0, start - 64), start);
+        const suffix = full.substring(end, Math.min(full.length, end + 64));
+        const headingId = nearestHeadingId(range);
+        return JSON.stringify({ exact: exact, prefix: prefix, suffix: suffix, headingId: headingId });
+    }
+
+    function stripUserNoteHighlights() {
+        document.querySelectorAll('mark.user-note-highlight').forEach(function(m) {
+            const parent = m.parentNode;
+            if (!parent) return;
+            while (m.firstChild) parent.insertBefore(m.firstChild, m);
+            parent.removeChild(m);
+            parent.normalize();
+        });
+    }
+
+    function findQuoteInPlain(full, exact, prefix, suffix) {
+        const needle = prefix + exact + suffix;
+        let i = full.indexOf(needle);
+        if (i >= 0) {
+            return { start: i + prefix.length, end: i + prefix.length + exact.length };
+        }
+        i = full.indexOf(exact);
+        if (i < 0) return null;
+        const j = full.indexOf(exact, i + 1);
+        if (j >= 0) return null;
+        return { start: i, end: i + exact.length };
+    }
+
+    function createRangeForPlainIndices(start, end) {
+        const full = bodyPlainString();
+        if (end > full.length || start < 0 || start > end) return null;
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: scriptStyleFilter });
+        let acc = 0;
+        let startNode = null, startOff = 0, endNode = null, endOff = 0;
+        let foundStart = false;
+        while (walker.nextNode()) {
+            const n = walker.currentNode;
+            const len = n.textContent.length;
+            const next = acc + len;
+            if (!foundStart && next > start) {
+                startNode = n;
+                startOff = start - acc;
+                foundStart = true;
+            }
+            if (next >= end) {
+                endNode = n;
+                endOff = end - acc;
+                break;
+            }
+            acc = next;
+        }
+        if (!startNode || !endNode) return null;
+        try {
+            const r = document.createRange();
+            r.setStart(startNode, Math.min(Math.max(0, startOff), startNode.textContent.length));
+            r.setEnd(endNode, Math.min(Math.max(0, endOff), endNode.textContent.length));
+            return r;
+        } catch (e) { return null; }
+    }
+
+    function applyNotesFromBase64(b64) {
+        stripUserNoteHighlights();
+        if (!b64) return;
+        let items;
+        try {
+            const json = atob(b64);
+            items = JSON.parse(json);
+        } catch (e) { return; }
+        if (!Array.isArray(items)) return;
+        const full = bodyPlainString();
+        const sorted = items.map(function(item) {
+            const a = item.anchor || {};
+            const pos = findQuoteInPlain(full, a.exact || '', a.prefix || '', a.suffix || '');
+            return { item: item, pos: pos };
+        }).filter(function(x) { return x.pos !== null; })
+          .sort(function(a, b) { return b.pos.start - a.pos.start; });
+        sorted.forEach(function(entry) {
+            const id = entry.item.id;
+            const a = entry.item.anchor || {};
+            const pos = entry.pos;
+            const range = createRangeForPlainIndices(pos.start, pos.end);
+            if (!range) return;
+            try {
+                const mark = document.createElement('mark');
+                mark.className = 'user-note-highlight';
+                mark.setAttribute('data-note-id', id);
+                range.surroundContents(mark);
+            } catch (e) {
+                try {
+                    const contents = range.extractContents();
+                    const mark = document.createElement('mark');
+                    mark.className = 'user-note-highlight';
+                    mark.setAttribute('data-note-id', id);
+                    mark.appendChild(contents);
+                    range.insertNode(mark);
+                } catch (e2) {}
+            }
+        });
+    }
+
+    function scrollToUserNote(noteId) {
+        const id = String(noteId).replace(/\\\\/g, '').replace(/"/g, '');
+        const el = document.querySelector('mark.user-note-highlight[data-note-id="' + id + '"]');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    window.noteFunctions = {
+        getSelectionPayload: getSelectionPayload,
+        applyNotesFromBase64: applyNotesFromBase64,
+        stripUserNoteHighlights: stripUserNoteHighlights,
+        scrollToUserNote: scrollToUserNote
+    };
+    })();
+    </script>
+    """
+}
+
+// MARK: - WKWebView (selection menu: “Dodaj notatkę”)
+
+/// Subclass so `buildMenu(with:)` runs on the same view WebKit uses for the text edit menu.
+private final class MarkdownWKWebView: WKWebView {
+    var onAddNoteFromSelection: (() -> Void)?
+
+    override func buildMenu(with builder: any UIMenuBuilder) {
+        super.buildMenu(with: builder)
+        guard onAddNoteFromSelection != nil else { return }
+        let addNote = UIAction(
+            title: "Dodaj notatkę",
+            image: UIImage(systemName: "square.and.pencil")
+        ) { [weak self] _ in
+            self?.onAddNoteFromSelection?()
+        }
+        let inline = UIMenu(title: "", options: .displayInline, children: [addNote])
+        builder.insertSibling(inline, afterMenu: .standardEdit)
+    }
 }
 
 // MARK: - WKWebView Wrapper
@@ -372,17 +586,21 @@ struct MarkdownWebView: UIViewRepresentable {
     let onCoordinatorReady: (Coordinator) -> Void
     /// Called on the main queue when `loadHTMLString` navigation finishes (document ready to display).
     let onDocumentLoaded: (() -> Void)?
+    /// Shown in the system text selection menu next to Copy, Look Up, etc.
+    var onAddNoteFromContextMenu: (() -> Void)?
 
     init(html: String,
          scrollToID: Binding<String?>,
          onSearchResults: @escaping (Int, Int) -> Void = { _, _ in },
          onCoordinatorReady: @escaping (Coordinator) -> Void = { _ in },
-         onDocumentLoaded: (() -> Void)? = nil) {
+         onDocumentLoaded: (() -> Void)? = nil,
+         onAddNoteFromContextMenu: (() -> Void)? = nil) {
         self.html = html
         self._scrollToID = scrollToID
         self.onSearchResults = onSearchResults
         self.onCoordinatorReady = onCoordinatorReady
         self.onDocumentLoaded = onDocumentLoaded
+        self.onAddNoteFromContextMenu = onAddNoteFromContextMenu
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -390,7 +608,7 @@ struct MarkdownWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.userContentController.add(context.coordinator, name: "searchResults")
-        let webView = WKWebView(frame: .zero, configuration: config)
+        let webView = MarkdownWKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         context.coordinator.webView = webView
         context.coordinator.searchResultsHandler = onSearchResults
@@ -398,6 +616,7 @@ struct MarkdownWebView: UIViewRepresentable {
         webView.backgroundColor = .clear
         webView.scrollView.backgroundColor = .clear
         webView.scrollView.showsHorizontalScrollIndicator = false
+        syncAddNoteHandler(webView, context: context)
         let coordinator = context.coordinator
         DispatchQueue.main.async {
             onCoordinatorReady(coordinator)
@@ -408,6 +627,9 @@ struct MarkdownWebView: UIViewRepresentable {
     func updateUIView(_ webView: WKWebView, context: Context) {
         context.coordinator.parent = self
         context.coordinator.searchResultsHandler = onSearchResults
+        if let md = webView as? MarkdownWKWebView {
+            syncAddNoteHandler(md, context: context)
+        }
 
         if context.coordinator.loadedHTML != html {
             context.coordinator.loadedHTML = html
@@ -424,8 +646,17 @@ struct MarkdownWebView: UIViewRepresentable {
         }
     }
 
+    private func syncAddNoteHandler(_ webView: MarkdownWKWebView, context: Context) {
+        let coord = context.coordinator
+        webView.onAddNoteFromSelection = { [weak coord] in
+            guard let coord else { return }
+            coord.parent.onAddNoteFromContextMenu?()
+        }
+    }
+
     static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "searchResults")
+        (uiView as? MarkdownWKWebView)?.onAddNoteFromSelection = nil
     }
 
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
@@ -463,6 +694,71 @@ struct MarkdownWebView: UIViewRepresentable {
 
         func clearSearch() {
             webView?.evaluateJavaScript("window.searchFunctions.clearHighlights();")
+        }
+
+        // MARK: Notes (highlights)
+
+        private struct NoteHighlightPayload: Encodable {
+            let id: String
+            let anchor: Anchor
+            struct Anchor: Encodable {
+                let exact: String
+                let prefix: String
+                let suffix: String
+                let headingId: String?
+            }
+        }
+
+        func applyUserNotes(_ notes: [DocumentNote]) {
+            guard isPageReady else { return }
+            let payload = notes.map {
+                NoteHighlightPayload(
+                    id: $0.id,
+                    anchor: .init(
+                        exact: $0.anchor.exact,
+                        prefix: $0.anchor.prefix,
+                        suffix: $0.anchor.suffix,
+                        headingId: $0.anchor.headingId
+                    )
+                )
+            }
+            guard let data = try? JSONEncoder().encode(payload) else { return }
+            let b64 = data.base64EncodedString()
+            webView?.evaluateJavaScript("window.noteFunctions.applyNotesFromBase64('\(b64)');")
+        }
+
+        func getSelectionTextQuote(completion: @escaping (TextQuoteAnchor?) -> Void) {
+            webView?.evaluateJavaScript("window.noteFunctions.getSelectionPayload();") { result, _ in
+                guard let json = result as? String,
+                      let data = json.data(using: .utf8) else {
+                    DispatchQueue.main.async { completion(nil) }
+                    return
+                }
+                struct SelectionPayload: Decodable {
+                    let exact: String
+                    let prefix: String
+                    let suffix: String
+                    let headingId: String?
+                }
+                guard let decoded = try? JSONDecoder().decode(SelectionPayload.self, from: data) else {
+                    DispatchQueue.main.async { completion(nil) }
+                    return
+                }
+                let anchor = TextQuoteAnchor(
+                    exact: decoded.exact,
+                    prefix: decoded.prefix,
+                    suffix: decoded.suffix,
+                    headingId: decoded.headingId
+                )
+                DispatchQueue.main.async { completion(anchor) }
+            }
+        }
+
+        func scrollToUserNote(id: String) {
+            let escaped = id
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "'", with: "\\'")
+            webView?.evaluateJavaScript("window.noteFunctions.scrollToUserNote('\(escaped)');")
         }
 
         // MARK: WKScriptMessageHandler
@@ -556,6 +852,9 @@ struct MDViewer: View {
     let title: String
     private let markdownURL: URL?
     private let eli: String?
+    /// When opened from Moje akty, keeps the same note store as the on-disk file.
+    private let favoriteDocumentId: String?
+    private let bundleResourceName: String?
 
     @State private var htmlContent = ""
     @State private var tocEntries: [MDTOCEntry] = []
@@ -577,22 +876,48 @@ struct MDViewer: View {
     @State private var isFavorited = false
     @State private var showingRemoveConfirmation = false
 
+    // Notes
+    @ObservedObject private var notesManager = NotesManager.shared
+    @State private var showNotesSheet = false
+    @State private var noteEditorSheet: NoteEditorSheetState?
+    @State private var newNoteText = ""
+    @State private var noSelectionAlert = false
+
     init(resourceName: String) {
         self.title = resourceName
         self.markdownURL = Bundle.main.url(forResource: resourceName, withExtension: "md")
         self.eli = nil
+        self.favoriteDocumentId = nil
+        self.bundleResourceName = resourceName
     }
 
-    init(title: String, fileURL: URL) {
+    init(title: String, fileURL: URL, favoriteDocumentId: String? = nil) {
         self.title = title
         self.markdownURL = fileURL
         self.eli = nil
+        self.favoriteDocumentId = favoriteDocumentId
+        self.bundleResourceName = nil
     }
-    
+
     init(title: String, eli: String) {
         self.title = title
         self.markdownURL = nil
         self.eli = eli
+        self.favoriteDocumentId = nil
+        self.bundleResourceName = nil
+    }
+
+    /// Canonical key for persisted notes (ELI, favorite id, file path, or bundle name).
+    private var effectiveDocumentKey: String {
+        NotesManager.effectiveDocumentKey(
+            title: title,
+            favoriteDocumentId: favoriteDocumentId,
+            eli: eli,
+            markdownURL: markdownURL,
+            bundleResourceName: bundleResourceName,
+            isFavorited: isFavorited,
+            favoritesManager: favoritesManager
+        )
     }
 
     var body: some View {
@@ -656,6 +981,10 @@ struct MDViewer: View {
                             },
                             onDocumentLoaded: {
                                 isLoading = false
+                                refreshNoteHighlights()
+                            },
+                            onAddNoteFromContextMenu: {
+                                tryAddNoteFromSelection()
                             }
                         )
                         .opacity(isLoading ? 0.001 : 1)
@@ -712,6 +1041,14 @@ struct MDViewer: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showNotesSheet = true
+                } label: {
+                    Image(systemName: "note.text")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
                 if !tocEntries.isEmpty {
                     Button {
                         showTOC = true
@@ -720,6 +1057,76 @@ struct MDViewer: View {
                     }
                 }
             }
+        }
+        .sheet(item: $noteEditorSheet) { state in
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Fragment")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(fragmentText(for: state))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                    Text("Treść notatki")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    NoteBodyTextEditor(text: $newNoteText, autoFocusKeyboard: state.autoFocusNoteBodyKeyboard)
+                        .frame(minHeight: 160)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(.separator), lineWidth: 0.5)
+                        )
+                }
+                .padding()
+                .navigationTitle(editorTitle(for: state))
+                .navigationBarTitleDisplayMode(.inline)
+                .onAppear {
+                    if case .editing(let note) = state {
+                        newNoteText = note.noteText
+                    }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Anuluj") {
+                            noteEditorSheet = nil
+                            newNoteText = ""
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Zapisz") {
+                            saveNoteEditor(state: state)
+                        }
+                        .disabled(newNoteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showNotesSheet) {
+            MDDocumentNotesSheet(
+                notes: notesManager.notes(forDocumentKey: effectiveDocumentKey),
+                onAddFromSelection: {
+                    showNotesSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        tryAddNoteFromSelection()
+                    }
+                },
+                onSelectNote: { note in
+                    webViewCoordinator?.scrollToUserNote(id: note.id)
+                },
+                onEdit: { note in
+                    showNotesSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        newNoteText = note.noteText
+                        noteEditorSheet = .editing(note)
+                    }
+                },
+                onDelete: { note in
+                    notesManager.remove(id: note.id)
+                    refreshNoteHighlights()
+                }
+            )
         }
         .sheet(isPresented: $showTOC) {
             MDTableOfContents(entries: tocEntries) { entry in
@@ -730,7 +1137,7 @@ struct MDViewer: View {
             }
         }
         .confirmationDialog(
-            "Czy na pewno chcesz usunąć ze Swoich Akt?",
+            "Czy na pewno chcesz usunąć ze Swoich Akt? Stracisz również notatki w dokumencie.",
             isPresented: $showingRemoveConfirmation,
             titleVisibility: .visible
         ) {
@@ -739,56 +1146,74 @@ struct MDViewer: View {
             }
             Button("Nie", role: .cancel) { }
         }
+        .alert("Zaznacz fragment tekstu w dokumencie", isPresented: $noSelectionAlert) {
+            Button("OK", role: .cancel) {}
+        }
         .onAppear {
             loadMarkdown()
             checkFavoriteStatus()
         }
     }
 
+    private func refreshNoteHighlights() {
+        let list = notesManager.notes(forDocumentKey: effectiveDocumentKey)
+        webViewCoordinator?.applyUserNotes(list)
+    }
+
+    private func tryAddNoteFromSelection() {
+        webViewCoordinator?.getSelectionTextQuote { anchor in
+            guard let anchor else {
+                noSelectionAlert = true
+                return
+            }
+            newNoteText = ""
+            noteEditorSheet = .newNote(anchor: anchor, draftId: UUID())
+        }
+    }
+
+    private func saveNoteEditor(state: NoteEditorSheetState) {
+        let trimmed = newNoteText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let key = effectiveDocumentKey
+        switch state {
+        case .newNote(let anchor, _):
+            let note = DocumentNote(documentKey: key, noteText: trimmed, anchor: anchor)
+            notesManager.add(note)
+            noteEditorSheet = nil
+            newNoteText = ""
+            Task { @MainActor in
+                let isFav = await notesManager.ensureActInFavoritesAndMigrateNotesIfNeeded(
+                    title: title,
+                    eli: eli,
+                    markdownURL: markdownURL,
+                    favoritesManager: favoritesManager
+                )
+                if isFav { isFavorited = true }
+                refreshNoteHighlights()
+            }
+        case .editing(var note):
+            note.noteText = trimmed
+            notesManager.update(note)
+            noteEditorSheet = nil
+            newNoteText = ""
+            refreshNoteHighlights()
+        }
+    }
+
     private func loadMarkdown() {
         Task {
             do {
-                let markdown: String
-                
-                if let url = markdownURL {
-                    markdown = try String(contentsOf: url, encoding: .utf8)
-                } else if let eli = eli {
-                    let cacheKey = "md_\(eli)"
-                    if let cachedData = CacheManager.shared.data(forKey: cacheKey, category: .persistentMD),
-                       let decoded = String(data: cachedData, encoding: .utf8) {
-                        markdown = decoded
-                    } else {
-                        let url = try await FirebaseManager.shared.getMarkdownDownloadURL(for: eli)
-                        let (data, response) = try await URLSession.shared.data(from: url)
-                        
-                        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                            throw URLError(.badServerResponse)
-                        }
-                        
-                        guard let decoded = String(data: data, encoding: .utf8) else {
-                            throw URLError(.cannotDecodeRawData)
-                        }
-                        
-                        // Store it persistently until the app is uninstalled
-                        try? CacheManager.shared.storeData(data, forKey: cacheKey, category: .persistentMD)
-                        
-                        markdown = decoded
-                    }
-                } else {
-                    await MainActor.run {
-                        self.errorMessage = "Nie znaleziono pliku."
-                        self.isLoading = false
-                    }
-                    return
-                }
-                
+                let markdown = try await NotesManager.loadMarkdownString(markdownURL: markdownURL, eli: eli)
                 let extractedTOC = MarkdownRenderer.extractTOC(from: markdown)
                 let html = MarkdownRenderer.toHTML(markdown)
-                
                 await MainActor.run {
                     self.tocEntries = extractedTOC
                     self.htmlContent = html
-                    // Keep isLoading true until MarkdownWebView reports WKWebView didFinish
+                }
+            } catch NotesManager.ActMarkdownError.noDocumentSource {
+                await MainActor.run {
+                    self.errorMessage = "Nie znaleziono pliku."
+                    self.isLoading = false
                 }
             } catch {
                 await MainActor.run {
@@ -802,36 +1227,12 @@ struct MDViewer: View {
     // MARK: - Favorites
 
     private func addToFavorites() {
-        Task {
-            do {
-                let data: Data
-                if let url = markdownURL {
-                    data = try Data(contentsOf: url)
-                } else if let eli = eli {
-                    let cacheKey = "md_\(eli)"
-                    if let cachedData = CacheManager.shared.data(forKey: cacheKey, category: .persistentMD) {
-                        data = cachedData
-                    } else {
-                        let url = try await FirebaseManager.shared.getMarkdownDownloadURL(for: eli)
-                        let (fetchedData, response) = try await URLSession.shared.data(from: url)
-                        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                            return
-                        }
-                        data = fetchedData
-                        
-                        try? CacheManager.shared.storeData(data, forKey: cacheKey, category: .persistentMD)
-                    }
-                } else {
-                    return
-                }
-                
-                await MainActor.run {
-                    favoritesManager.addFavorite(title: title, pdfData: data, fileExtension: "md")
-                    isFavorited = true
-                }
-            } catch {
-                print("Error adding to favorites: \(error)")
+        Task { @MainActor in
+            guard let data = await NotesManager.loadMarkdownData(markdownURL: markdownURL, eli: eli) else {
+                return
             }
+            favoritesManager.addFavorite(title: title, pdfData: data, fileExtension: "md")
+            isFavorited = true
         }
     }
 

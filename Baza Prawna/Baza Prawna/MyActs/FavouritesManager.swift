@@ -8,6 +8,7 @@
 import Foundation
 import SwiftUI
 import Combine
+import UIKit
 
 // MARK: - FavoriteFolder Model
 struct FavoriteFolder: Identifiable, Codable {
@@ -137,11 +138,15 @@ final class FavoritesManager: ObservableObject {
     }
     
     func getDocumentsInFolder(folderId: String?) -> [FavoriteDocument] {
-        return favorites.filter { $0.folderId == folderId }
+        favorites
+            .filter { $0.folderId == folderId }
+            .sorted { $0.dateAdded > $1.dateAdded }
     }
     
     func getDocumentsInRoot() -> [FavoriteDocument] {
-        return favorites.filter { $0.folderId == nil }
+        favorites
+            .filter { $0.folderId == nil }
+            .sorted { $0.dateAdded > $1.dateAdded }
     }
     
     // MARK: - Document Management
@@ -164,9 +169,18 @@ final class FavoritesManager: ObservableObject {
             
             favorites.append(favorite)
             saveFavorites()
+            Self.playFavoriteAddedHaptic()
             
         } catch {
             // Handle error silently
+        }
+    }
+    
+    private static func playFavoriteAddedHaptic() {
+        DispatchQueue.main.async {
+            let generator = UIImpactFeedbackGenerator(style: .medium)
+            generator.prepare()
+            generator.impactOccurred()
         }
     }
     

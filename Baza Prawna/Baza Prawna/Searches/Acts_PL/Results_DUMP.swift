@@ -203,7 +203,7 @@ struct ActRowView: View {
                         Spacer()
                         
                         NavigationLink(destination: UnifiedPDFViewer(act: act)) {
-                            Text("Zobaczyć PDF")
+                            Text("PDF")
                                 .font(horizontalSizeClass == .regular ? .body : .subheadline)
                                 .fontWeight(.medium)
                                 .foregroundColor(.blue)
