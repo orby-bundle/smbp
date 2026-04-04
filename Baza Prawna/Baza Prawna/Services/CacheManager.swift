@@ -15,6 +15,7 @@ final class CacheManager {
         case html
         case summary
         case translation
+        case persistentMD
         case custom(name: String, fileExtension: String)
 
         var directoryName: String {
@@ -23,6 +24,7 @@ final class CacheManager {
             case .html: return "html"
             case .summary: return "summary"
             case .translation: return "translation"
+            case .persistentMD: return "persistentMD"
             case .custom(let name, _): return name
             }
         }
@@ -33,6 +35,7 @@ final class CacheManager {
             case .html: return "html"
             case .summary: return "txt"
             case .translation: return "txt"
+            case .persistentMD: return "md"
             case .custom(_, let ext): return ext
             }
         }
@@ -65,6 +68,7 @@ final class CacheManager {
 
     private let fileManager: FileManager
     private let cachesRootDirectory: URL
+    private let persistentRootDirectory: URL
     private let ioQueue = DispatchQueue(label: "com.bazaprawna.cache", qos: .utility)
 
     // MARK: - Init
@@ -75,9 +79,15 @@ final class CacheManager {
         let cachesDirectory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
         let rootDirectory = cachesDirectory.appendingPathComponent("BazaPrawnaCache", isDirectory: true)
         self.cachesRootDirectory = rootDirectory
+        
+        let appSupportDirectory = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        let persistentDirectory = appSupportDirectory.appendingPathComponent("BazaPrawnaPersistent", isDirectory: true)
+        self.persistentRootDirectory = persistentDirectory
 
         createDirectoryIfNeeded(at: rootDirectory)
+        createDirectoryIfNeeded(at: persistentDirectory)
         excludeFromBackup(url: rootDirectory)
+        excludeFromBackup(url: persistentDirectory)
         cleanupExpiredEntries()
     }
 
@@ -94,7 +104,9 @@ final class CacheManager {
 
         try data.write(to: fileURL, options: [.atomic])
         excludeFromBackup(url: fileURL)
-        try applyExpirationDate(ttl ?? defaultTTL, to: fileURL)
+        if category != .persistentMD {
+            try applyExpirationDate(ttl ?? defaultTTL, to: fileURL)
+        }
     }
 
     /// Stores a string using UTF-8 encoding.
@@ -115,7 +127,7 @@ final class CacheManager {
     func data(forKey key: String, category: CacheCategory) -> Data? {
         let fileURL = makeFileURL(for: key, category: category)
 
-        guard isFileUsable(at: fileURL) else { return nil }
+        guard isFileUsable(at: fileURL, category: category) else { return nil }
         return try? Data(contentsOf: fileURL)
     }
 
@@ -209,7 +221,8 @@ final class CacheManager {
     }
 
     private func categoryDirectory(for category: CacheCategory) -> URL {
-        let directory = cachesRootDirectory.appendingPathComponent(category.directoryName, isDirectory: true)
+        let baseDir = category == .persistentMD ? persistentRootDirectory : cachesRootDirectory
+        let directory = baseDir.appendingPathComponent(category.directoryName, isDirectory: true)
         createDirectoryIfNeeded(at: directory)
         return directory
     }
@@ -231,7 +244,11 @@ final class CacheManager {
         try fileManager.setAttributes([.modificationDate: expirationDate], ofItemAtPath: fileURL.path)
     }
 
-    private func isFileUsable(at url: URL) -> Bool {
+    private func isFileUsable(at url: URL, category: CacheCategory) -> Bool {
+        if category == .persistentMD {
+            return fileManager.fileExists(atPath: url.path)
+        }
+        
         guard let attributes = try? fileManager.attributesOfItem(atPath: url.path),
               let expirationDate = attributes[.modificationDate] as? Date else {
             return false

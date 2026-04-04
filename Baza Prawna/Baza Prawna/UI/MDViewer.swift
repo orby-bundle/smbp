@@ -546,6 +546,7 @@ struct MDTableOfContents: View {
 struct MDViewer: View {
     let title: String
     private let markdownURL: URL?
+    private let eli: String?
 
     @State private var htmlContent = ""
     @State private var tocEntries: [MDTOCEntry] = []
@@ -569,11 +570,19 @@ struct MDViewer: View {
     init(resourceName: String) {
         self.title = resourceName
         self.markdownURL = Bundle.main.url(forResource: resourceName, withExtension: "md")
+        self.eli = nil
     }
 
     init(title: String, fileURL: URL) {
         self.title = title
         self.markdownURL = fileURL
+        self.eli = nil
+    }
+    
+    init(title: String, eli: String) {
+        self.title = title
+        self.markdownURL = nil
+        self.eli = eli
     }
 
     var body: some View {
@@ -707,30 +716,93 @@ struct MDViewer: View {
     }
 
     private func loadMarkdown() {
-        guard let url = markdownURL else {
-            errorMessage = "Nie znaleziono pliku."
-            isLoading = false
-            return
+        Task {
+            do {
+                let markdown: String
+                
+                if let url = markdownURL {
+                    markdown = try String(contentsOf: url, encoding: .utf8)
+                } else if let eli = eli {
+                    let cacheKey = "md_\(eli)"
+                    if let cachedData = CacheManager.shared.data(forKey: cacheKey, category: .persistentMD),
+                       let decoded = String(data: cachedData, encoding: .utf8) {
+                        markdown = decoded
+                    } else {
+                        let url = try await FirebaseManager.shared.getMarkdownDownloadURL(for: eli)
+                        let (data, response) = try await URLSession.shared.data(from: url)
+                        
+                        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                            throw URLError(.badServerResponse)
+                        }
+                        
+                        guard let decoded = String(data: data, encoding: .utf8) else {
+                            throw URLError(.cannotDecodeRawData)
+                        }
+                        
+                        // Store it persistently until the app is uninstalled
+                        try? CacheManager.shared.storeData(data, forKey: cacheKey, category: .persistentMD)
+                        
+                        markdown = decoded
+                    }
+                } else {
+                    await MainActor.run {
+                        self.errorMessage = "Nie znaleziono pliku."
+                        self.isLoading = false
+                    }
+                    return
+                }
+                
+                let extractedTOC = MarkdownRenderer.extractTOC(from: markdown)
+                let html = MarkdownRenderer.toHTML(markdown)
+                
+                await MainActor.run {
+                    self.tocEntries = extractedTOC
+                    self.htmlContent = html
+                    self.isLoading = false
+                }
+            } catch {
+                await MainActor.run {
+                    self.errorMessage = "Nie udało się wczytać pliku: \(error.localizedDescription)"
+                    self.isLoading = false
+                }
+            }
         }
-
-        do {
-            let markdown = try String(contentsOf: url, encoding: .utf8)
-            tocEntries = MarkdownRenderer.extractTOC(from: markdown)
-            htmlContent = MarkdownRenderer.toHTML(markdown)
-        } catch {
-            errorMessage = "Nie udało się wczytać pliku: \(error.localizedDescription)"
-        }
-
-        isLoading = false
     }
 
     // MARK: - Favorites
 
     private func addToFavorites() {
-        guard let url = markdownURL,
-              let data = try? Data(contentsOf: url) else { return }
-        favoritesManager.addFavorite(title: title, pdfData: data, fileExtension: "md")
-        isFavorited = true
+        Task {
+            do {
+                let data: Data
+                if let url = markdownURL {
+                    data = try Data(contentsOf: url)
+                } else if let eli = eli {
+                    let cacheKey = "md_\(eli)"
+                    if let cachedData = CacheManager.shared.data(forKey: cacheKey, category: .persistentMD) {
+                        data = cachedData
+                    } else {
+                        let url = try await FirebaseManager.shared.getMarkdownDownloadURL(for: eli)
+                        let (fetchedData, response) = try await URLSession.shared.data(from: url)
+                        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                            return
+                        }
+                        data = fetchedData
+                        
+                        try? CacheManager.shared.storeData(data, forKey: cacheKey, category: .persistentMD)
+                    }
+                } else {
+                    return
+                }
+                
+                await MainActor.run {
+                    favoritesManager.addFavorite(title: title, pdfData: data, fileExtension: "md")
+                    isFavorited = true
+                }
+            } catch {
+                print("Error adding to favorites: \(error)")
+            }
+        }
     }
 
     private func removeFromFavorites() {

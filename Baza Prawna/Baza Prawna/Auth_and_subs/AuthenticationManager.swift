@@ -62,6 +62,22 @@ final class AuthenticationManager: ObservableObject {
     
     // MARK: - Public Methods
     
+    /// Signs in anonymously if no user is currently authenticated
+    func signInAnonymouslyIfNeeded() {
+        if Auth.auth().currentUser == nil {
+            Auth.auth().signInAnonymously { authResult, error in
+                if let error = error {
+                    print("ERROR: Anonymous sign-in failed: \(error.localizedDescription)")
+                } else if let user = authResult?.user {
+                    print("OK: Signed in anonymously with UID: \(user.uid)")
+                    Task {
+                        await FirebaseManager.shared.syncUserData(uid: user.uid)
+                    }
+                }
+            }
+        }
+    }
+    
     func signOut() {
         do {
             try Auth.auth().signOut()

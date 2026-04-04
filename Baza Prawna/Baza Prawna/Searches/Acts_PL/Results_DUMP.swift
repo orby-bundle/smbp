@@ -181,12 +181,41 @@ struct ActRowView: View {
                 }
                 
                 // Inline PDF preview: top half of the first page.
-                NavigationLink(destination: UnifiedPDFViewer(act: act)) {
-                    PDFPreviewTile(cacheKey: "act_\(act.ELI)") {
-                        try await APIService.shared.getActText(eli: act.ELI, format: .pdf)
+                VStack(spacing: 0) {
+                    NavigationLink(destination: UnifiedPDFViewer(act: act)) {
+                        PDFPreviewTile(cacheKey: "act_\(act.ELI)", openText: "") {
+                            try await APIService.shared.getActText(eli: act.ELI, format: .pdf)
+                        }
                     }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    HStack(spacing: 12) {
+                        Spacer()
+                        
+                        NavigationLink(destination: UnifiedPDFViewer(act: act)) {
+                            Text("Zobacz PDF")
+                                .font(horizontalSizeClass == .regular ? .body : .subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.blue)
+                                .underline()
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Text("•")
+                            .foregroundColor(.secondary)
+                        
+                        NavigationLink(destination: MDViewer(title: act.title ?? act.displayAddress, eli: act.ELI)) {
+                            Text("Czytaj MD")
+                                .font(horizontalSizeClass == .regular ? .body : .subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.blue)
+                                .underline()
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
+                    .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
+                    .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
                 }
-                .buttonStyle(PlainButtonStyle())
             }
         }
         .frame(maxWidth: .infinity)
