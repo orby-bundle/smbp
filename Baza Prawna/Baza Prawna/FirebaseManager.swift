@@ -9,6 +9,8 @@ import UIKit
 import FirebaseCore
 import FirebaseMessaging
 import FirebaseFirestore
+import FirebaseStorage
+import FirebaseAuth
 import UserNotifications
 import BackgroundTasks
 import Combine
@@ -270,6 +272,32 @@ class FirebaseManager: ObservableObject {
     private init() {
         // Initialize Firestore with the named database "smbpdata"
         self.db = Firestore.firestore(database: "smbpdata")
+    }
+    
+    // MARK: - Cloud Storage
+    func getMarkdownDownloadURL(for eli: String) async throws -> URL {
+        // Ensure the user is authenticated before requesting Storage download URL
+        if Auth.auth().currentUser == nil {
+            do {
+                let authResult = try await Auth.auth().signInAnonymously()
+                await self.syncUserData(uid: authResult.user.uid)
+            } catch {
+                secureLog("Failed to sign in anonymously before storage request: \(error.localizedDescription)")
+            }
+        }
+        
+        let parts = eli.components(separatedBy: "/")
+        guard parts.count >= 3 else { throw URLError(.badURL) }
+        
+        let publisher = parts[0]
+        let year = parts[1]
+        let number = parts[2]
+        
+        // Structure example: /DU/DU_2026/DU_2026_50.md
+        let path = "\(publisher)/\(publisher)_\(year)/\(publisher)_\(year)_\(number).md"
+        
+        let storageRef = Storage.storage().reference().child(path)
+        return try await storageRef.downloadURL()
     }
     
     // MARK: - Subscription Status Sync
