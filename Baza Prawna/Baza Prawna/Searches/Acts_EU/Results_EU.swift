@@ -157,31 +157,16 @@ struct EUDocumentRowView: View {
                     .foregroundColor(.secondary)
             }
             
-            // Action buttons row
+            // PDF preview + PDF • Czytaj (same pattern as Acts PL / Results_DUMP)
             if document.celex != nil {
                 VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 8 : 6) {
-                    HStack {
-                        Spacer()
-                        HStack(spacing: horizontalSizeClass == .regular ? 24 : 20) {
-                            if shouldShowSummaryButton {
-                                Button(action: {
-                                    handleSummaryAction()
-                                }) {
-                                    Text("Skrót")
-                                        .font(horizontalSizeClass == .regular ? .body : .subheadline)
-                                        .fontWeight(.medium)
-                                        .foregroundColor(.blue)
-                                        .underline()
-                                        .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
-                                        .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
-                                }
-                            }
-                            
-                            // HTML link
+                    if shouldShowSummaryButton {
+                        HStack {
+                            Spacer()
                             Button(action: {
-                                showingSafari = true
+                                handleSummaryAction()
                             }) {
-                                Text("Czytaj")
+                                Text("Skrót")
                                     .font(horizontalSizeClass == .regular ? .body : .subheadline)
                                     .fontWeight(.medium)
                                     .foregroundColor(.blue)
@@ -191,17 +176,47 @@ struct EUDocumentRowView: View {
                             }
                         }
                     }
-                    
-                    NavigationLink(destination: UnifiedPDFViewer(document: document, language: selectedLanguage)) {
-                        PDFPreviewTile(cacheKey: "eu_\(document.cellarId)_\(selectedLanguage.rawValue)") {
-                            try await API_EUService.shared.getEUDocumentPDF(
-                                cellarId: document.cellarId,
-                                language: selectedLanguage,
-                                celex: document.celex
-                            )
+
+                    VStack(spacing: 0) {
+                        NavigationLink(destination: UnifiedPDFViewer(document: document, language: selectedLanguage)) {
+                            PDFPreviewTile(cacheKey: "eu_\(document.cellarId)_\(selectedLanguage.rawValue)", openText: "") {
+                                try await API_EUService.shared.getEUDocumentPDF(
+                                    cellarId: document.cellarId,
+                                    language: selectedLanguage,
+                                    celex: document.celex
+                                )
+                            }
                         }
+                        .buttonStyle(PlainButtonStyle())
+
+                        HStack(spacing: 12) {
+                            Spacer()
+
+                            NavigationLink(destination: UnifiedPDFViewer(document: document, language: selectedLanguage)) {
+                                Text("PDF")
+                                    .font(horizontalSizeClass == .regular ? .body : .subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                                    .underline()
+                            }
+                            .buttonStyle(PlainButtonStyle())
+
+                            Text("•")
+                                .foregroundColor(.secondary)
+
+                            Button(action: {
+                                showingSafari = true
+                            }) {
+                                Text("Czytaj")
+                                    .font(horizontalSizeClass == .regular ? .body : .subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.blue)
+                                    .underline()
+                            }
+                        }
+                        .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
+                        .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
                     }
-                    .buttonStyle(PlainButtonStyle())
                 }
             }
             
