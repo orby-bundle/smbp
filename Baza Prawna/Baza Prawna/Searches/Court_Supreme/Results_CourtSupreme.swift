@@ -113,17 +113,36 @@ struct SupremeCourtJudgmentRowView: View {
                 .font(horizontalSizeClass == .regular ? .body : .subheadline)
                 .foregroundColor(.secondary)
             
-            // Action buttons row
-            VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 8 : 6) {
-                HStack {
+            // PDF preview + PDF • Czytaj (same pattern as Results_DUMP)
+            VStack(spacing: 0) {
+                NavigationLink(destination: SupremeCourtJudgmentPDFView(judgment: judgment)) {
+                    PDFPreviewTile(cacheKey: "supreme_\(judgment.fullURL)", openText: "") {
+                        try await SupremeCourtJudgmentPDFView.buildPDFData(for: judgment)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                HStack(spacing: 12) {
                     Spacer()
-                    // Read button (HTML)
+
+                    NavigationLink(destination: SupremeCourtJudgmentPDFView(judgment: judgment)) {
+                        Text("PDF")
+                            .font(horizontalSizeClass == .regular ? .body : .subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                            .underline()
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Text("•")
+                        .foregroundColor(.secondary)
+
                     Button(action: {
                         Task {
                             await loadHTMLContent()
                         }
                     }) {
-                        HStack {
+                        HStack(spacing: 6) {
                             if isLoadingHTML {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .blue))
@@ -134,19 +153,12 @@ struct SupremeCourtJudgmentRowView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.blue)
                                 .underline()
-                                .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
-                                .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
                         }
                     }
                     .disabled(isLoadingHTML)
                 }
-
-                NavigationLink(destination: SupremeCourtJudgmentPDFView(judgment: judgment)) {
-                    PDFPreviewTile(cacheKey: "supreme_\(judgment.fullURL)") {
-                        try await SupremeCourtJudgmentPDFView.buildPDFData(for: judgment)
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
+                .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
+                .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
             }
         }
         .frame(maxWidth: .infinity)

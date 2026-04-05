@@ -91,17 +91,36 @@ struct NSAJudgmentRowView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                       
-            // Action buttons row
-            VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 8 : 6) {
-                HStack {
+            // PDF preview + PDF • Czytaj (same pattern as Results_DUMP)
+            VStack(spacing: 0) {
+                NavigationLink(destination: NSAJudgmentPDFView(judgment: judgment)) {
+                    PDFPreviewTile(cacheKey: "nsa_\(judgment.id)", openText: "") {
+                        try await NSAJudgmentPDFView.buildPDFData(for: judgment)
+                    }
+                }
+                .buttonStyle(PlainButtonStyle())
+
+                HStack(spacing: 12) {
                     Spacer()
-                    // Read button
+
+                    NavigationLink(destination: NSAJudgmentPDFView(judgment: judgment)) {
+                        Text("PDF")
+                            .font(horizontalSizeClass == .regular ? .body : .subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                            .underline()
+                    }
+                    .buttonStyle(PlainButtonStyle())
+
+                    Text("•")
+                        .foregroundColor(.secondary)
+
                     Button(action: {
                         Task {
                             await loadHTMLContent()
                         }
                     }) {
-                        HStack {
+                        HStack(spacing: 6) {
                             if isLoadingHTML {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .blue))
@@ -112,19 +131,12 @@ struct NSAJudgmentRowView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.blue)
                                 .underline()
-                                .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
-                                .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
                         }
                     }
                     .disabled(isLoadingHTML)
                 }
-
-                NavigationLink(destination: NSAJudgmentPDFView(judgment: judgment)) {
-                    PDFPreviewTile(cacheKey: "nsa_\(judgment.id)") {
-                        try await NSAJudgmentPDFView.buildPDFData(for: judgment)
-                    }
-                }
-                .buttonStyle(PlainButtonStyle())
+                .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
+                .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
             }
         }
         .frame(maxWidth: .infinity)
