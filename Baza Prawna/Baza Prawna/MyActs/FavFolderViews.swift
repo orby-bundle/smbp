@@ -22,6 +22,7 @@ struct FolderDetailView: View {
     @State private var isSelectionMode: Bool = false
     @State private var showingBulkDeleteConfirmation = false
     @State private var showingBulkMoveSheet = false
+    @State private var pendingDeleteDocumentIds: Set<String> = []
     
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -35,6 +36,7 @@ struct FolderDetailView: View {
     }
     
     var body: some View {
+        Group {
         if isRegularWidth {
             // iPad layout - use ScrollView with grid
             ScrollView {
@@ -73,7 +75,8 @@ struct FolderDetailView: View {
                                 onSelect: {
                                     enterSelectionMode()
                                     selectedDocumentIds.insert(favorite.id)
-                                }
+                                },
+                                onRequestDelete: { pendingDeleteDocumentIds = [$0] }
                             )
                         }
                     }
@@ -181,7 +184,8 @@ struct FolderDetailView: View {
                             onSelect: {
                                 enterSelectionMode()
                                 selectedDocumentIds.insert(favorite.id)
-                            }
+                            },
+                            onRequestDelete: { pendingDeleteDocumentIds = [$0] }
                         )
                     }
                     .onDelete(perform: deleteDocuments)
@@ -250,6 +254,13 @@ struct FolderDetailView: View {
                 }
             ))
         }
+        }
+        .modifier(PendingDocumentDeleteAlertModifier(
+            pendingDeleteDocumentIds: $pendingDeleteDocumentIds,
+            onConfirmDelete: { ids in
+                favoritesManager.bulkDeleteDocuments(ids: ids)
+            }
+        ))
     }
     
     // MARK: - Selection Mode Management
@@ -279,10 +290,8 @@ struct FolderDetailView: View {
     }
     
     private func deleteDocuments(offsets: IndexSet) {
-        for index in offsets {
-            let favorite = documentsInFolder[index]
-            favoritesManager.removeFavorite(id: favorite.id)
-        }
+        let docs = documentsInFolder
+        pendingDeleteDocumentIds = Set(offsets.map { docs[$0].id })
     }
     
     private func shareFolder() {

@@ -9,6 +9,8 @@ import UIKit
 import FirebaseCore
 import FirebaseMessaging
 import FirebaseFirestore
+import FirebaseStorage
+import FirebaseAuth
 import UserNotifications
 import BackgroundTasks
 import Combine
@@ -270,6 +272,49 @@ class FirebaseManager: ObservableObject {
     private init() {
         // Initialize Firestore with the named database "smbpdata"
         self.db = Firestore.firestore(database: "smbpdata")
+    }
+    
+    // MARK: - Cloud Storage
+    
+    /// Same path layout as `getMarkdownDownloadURL` — e.g. `DU/DU_2026/DU_2026_50.md`.
+    private func markdownStoragePath(for eli: String) -> String? {
+        let parts = eli.components(separatedBy: "/")
+        guard parts.count >= 3 else { return nil }
+        let publisher = parts[0]
+        let year = parts[1]
+        let number = parts[2]
+        return "\(publisher)/\(publisher)_\(year)/\(publisher)_\(year)_\(number).md"
+    }
+    
+    private func ensureSignedInForStorage() async {
+        if Auth.auth().currentUser == nil {
+            do {
+                let authResult = try await Auth.auth().signInAnonymously()
+                await self.syncUserData(uid: authResult.user.uid)
+            } catch {
+                secureLog("Failed to sign in anonymously before storage request: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    /// Returns whether the `.md` object exists for this ELI (uses `getMetadata`, same path as download URL).
+    func markdownExistsInStorage(for eli: String) async -> Bool {
+        await ensureSignedInForStorage()
+        guard let path = markdownStoragePath(for: eli) else { return false }
+        let storageRef = Storage.storage().reference().child(path)
+        do {
+            _ = try await storageRef.getMetadata()
+            return true
+        } catch {
+            return false
+        }
+    }
+    
+    func getMarkdownDownloadURL(for eli: String) async throws -> URL {
+        await ensureSignedInForStorage()
+        guard let path = markdownStoragePath(for: eli) else { throw URLError(.badURL) }
+        let storageRef = Storage.storage().reference().child(path)
+        return try await storageRef.downloadURL()
     }
     
     // MARK: - Subscription Status Sync

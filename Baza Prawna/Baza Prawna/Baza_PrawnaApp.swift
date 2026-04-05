@@ -9,6 +9,7 @@ import SwiftUI
 import SafariServices
 import FirebaseCore
 import FirebaseAuth
+import FirebaseAppCheck
 import Combine
 import StoreKit
 import PostHog
@@ -20,7 +21,15 @@ struct Baza_PrawnaApp: App {
     @StateObject private var subscriptionManager = SubscriptionManager.shared
 
     init() {
+        #if DEBUG
+        let providerFactory = AppCheckDebugProviderFactory()
+        AppCheck.setAppCheckProviderFactory(providerFactory)
+        #endif
+        
         FirebaseApp.configure()
+        
+        // Ensure the user always has a valid auth token for Firebase Storage
+        AuthenticationManager.shared.signInAnonymouslyIfNeeded()
         
         // Initialize subscription system
         Task {

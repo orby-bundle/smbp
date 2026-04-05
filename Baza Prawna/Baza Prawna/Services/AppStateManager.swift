@@ -6,8 +6,10 @@ import Combine
 enum DefaultsKeys {
     static let hasSeenOnboarding = "hasSeenOnboarding"
     static let hasSeenSearchHelp = "hasSeenSearchHelp"
+    static let hasSeenMDNavigationHelp = "hasSeenMDNavigationHelp"
 #if DEBUG
     static let forceShowSearchHelp = "forceShowSearchHelp"
+    static let forceShowMDNavigationHelp = "forceShowMDNavigationHelp"
 #endif
 }
 
@@ -22,10 +24,20 @@ extension UserDefaults {
         set { set(newValue, forKey: DefaultsKeys.hasSeenSearchHelp) }
     }
 
+    var hasSeenMDNavigationHelp: Bool {
+        get { bool(forKey: DefaultsKeys.hasSeenMDNavigationHelp) }
+        set { set(newValue, forKey: DefaultsKeys.hasSeenMDNavigationHelp) }
+    }
+
 #if DEBUG
     var forceShowSearchHelp: Bool {
         get { bool(forKey: DefaultsKeys.forceShowSearchHelp) }
         set { set(newValue, forKey: DefaultsKeys.forceShowSearchHelp) }
+    }
+
+    var forceShowMDNavigationHelp: Bool {
+        get { bool(forKey: DefaultsKeys.forceShowMDNavigationHelp) }
+        set { set(newValue, forKey: DefaultsKeys.forceShowMDNavigationHelp) }
     }
 #endif
 }
@@ -35,10 +47,17 @@ final class AppStateManager: ObservableObject {
 
     @Published var shouldShowOnboarding: Bool
     @Published var shouldShowSearchHelp: Bool
+    @Published var shouldShowMDNavigationHelp: Bool
 #if DEBUG
     @Published var forceShowSearchHelp: Bool {
         didSet {
             defaults.forceShowSearchHelp = forceShowSearchHelp
+        }
+    }
+
+    @Published var forceShowMDNavigationHelp: Bool {
+        didSet {
+            defaults.forceShowMDNavigationHelp = forceShowMDNavigationHelp
         }
     }
 #endif
@@ -53,6 +72,10 @@ final class AppStateManager: ObservableObject {
         self.forceShowSearchHelp = defaults.forceShowSearchHelp
 #endif
         let hasSeenSearchHelp = defaults.hasSeenSearchHelp
+        let hasSeenMDNavigationHelp = defaults.hasSeenMDNavigationHelp
+#if DEBUG
+        self.forceShowMDNavigationHelp = defaults.forceShowMDNavigationHelp
+#endif
         #if DEBUG
         self.shouldShowOnboarding = false
         #else
@@ -64,9 +87,17 @@ final class AppStateManager: ObservableObject {
         } else {
             self.shouldShowSearchHelp = false
         }
+        if hasSeen && !hasSeenMDNavigationHelp {
+            self.shouldShowMDNavigationHelp = true
+        } else {
+            self.shouldShowMDNavigationHelp = false
+        }
 #if DEBUG
         if forceShowSearchHelp {
             self.shouldShowSearchHelp = true
+        }
+        if forceShowMDNavigationHelp {
+            self.shouldShowMDNavigationHelp = true
         }
 #endif
 
@@ -107,16 +138,46 @@ final class AppStateManager: ObservableObject {
 #endif
     }
 
+    func markMDNavigationHelpSeen() {
+        defaults.hasSeenMDNavigationHelp = true
+        shouldShowMDNavigationHelp = false
+#if DEBUG
+        forceShowMDNavigationHelp = false
+#endif
+    }
+
+    func resetMDNavigationHelp() {
+        defaults.hasSeenMDNavigationHelp = false
+        shouldShowMDNavigationHelp = true
+#if DEBUG
+        forceShowMDNavigationHelp = true
+#endif
+    }
+
     private func updateSearchHelpVisibilityAfterOnboarding() {
 #if DEBUG
         if forceShowSearchHelp {
             shouldShowSearchHelp = true
-            return
+        } else if !defaults.hasSeenSearchHelp {
+            shouldShowSearchHelp = true
         }
-#endif
+#else
         if !defaults.hasSeenSearchHelp {
             shouldShowSearchHelp = true
         }
+#endif
+
+#if DEBUG
+        if forceShowMDNavigationHelp {
+            shouldShowMDNavigationHelp = true
+        } else if !defaults.hasSeenMDNavigationHelp {
+            shouldShowMDNavigationHelp = true
+        }
+#else
+        if !defaults.hasSeenMDNavigationHelp {
+            shouldShowMDNavigationHelp = true
+        }
+#endif
     }
 }
 

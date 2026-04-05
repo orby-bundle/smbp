@@ -79,14 +79,16 @@ struct PDFPreviewTile: View {
                     .stroke(Color.blue.opacity(0.35), lineWidth: 1)
             )
 
-            Text(openText)
-                .font(horizontalSizeClass == .regular ? .body : .subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.blue)
-                .underline()
-                .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
-                .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
-                .frame(maxWidth: .infinity, alignment: .trailing)
+            if !openText.isEmpty {
+                Text(openText)
+                    .font(horizontalSizeClass == .regular ? .body : .subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.blue)
+                    .underline()
+                    .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
+                    .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+            }
         }
         .task(id: cacheKey) {
             await previewLoader.loadPreview(cacheKey: cacheKey, pdfDataProvider: pdfDataProvider)

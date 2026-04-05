@@ -29,6 +29,11 @@ struct SettingsView: View {
     private var isRegularWidth: Bool {
         horizontalSizeClass == .regular
     }
+
+    /// Signed-out users and anonymous Firebase users see Sign in with Apple plus the same explanatory copy.
+    private var shouldShowSignInWithApplePromo: Bool {
+        !authManager.isAuthenticated || authManager.isAnonymous
+    }
     
     var body: some View {
         NavigationStack {
@@ -122,8 +127,8 @@ struct SettingsView: View {
             
             // Account Card
             VStack(spacing: 0) {
-                // Account Info - Tappable for authenticated users
-                if authManager.isAuthenticated {
+                // Account Info — tappable only for non-anonymous signed-in users (e.g. Apple ID)
+                if authManager.isAuthenticated && !authManager.isAnonymous {
                     Button(action: {
                         showingAccountSheet = true
                     }) {
@@ -187,7 +192,7 @@ struct SettingsView: View {
                                 .foregroundColor(.secondary)
                         }
                         
-                        // User Info
+                        // User Info ("Niezalogowany" or "Zalogowany anonimowo")
                         VStack(alignment: .leading, spacing: 4) {
                             Text(authStatusText)
                                 .font(isRegularWidth ? .title3 : .headline)
@@ -202,17 +207,17 @@ struct SettingsView: View {
                 }
                 
                 // Divider
-                if !authManager.isAuthenticated {
+                if shouldShowSignInWithApplePromo {
                     Divider()
                         .padding(.horizontal, isRegularWidth ? 24 : 20)
                 }
                 
-                // Actions
-                if !authManager.isAuthenticated {
+                // Actions (signed out or anonymous)
+                if shouldShowSignInWithApplePromo {
                     VStack(spacing: 12) {
                         appleSignInCoordinator.signInWithAppleButton
                         
-                        Text("Zaloguj się, aby alerty były sprawdzane w tle, a urządzenie pokazywało powiadomienia o nowych wynikach")
+                        Text("Zaloguj się z Apple ID, żeby alerty były sprawdzane w tle, a urządzenie pokazywało powiadomienia o nowych wynikach")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
@@ -292,6 +297,29 @@ struct SettingsView: View {
                 .padding(.vertical, isRegularWidth ? 16 : 12)
                 .toggleStyle(SwitchToggleStyle(tint: .blue))
 
+                Toggle(isOn: Binding(
+                    get: { appStateManager.forceShowMDNavigationHelp },
+                    set: { newValue in
+                        if newValue {
+                            appStateManager.resetMDNavigationHelp()
+                        } else {
+                            appStateManager.markMDNavigationHelpSeen()
+                        }
+                    }
+                )) {
+                    HStack {
+                        Image(systemName: "list.bullet")
+                            .font(.title3)
+                            .foregroundColor(.green)
+                        Text("Pokaż pomoc nawigacji w akcie (MD)")
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                    }
+                }
+                .padding(.horizontal, isRegularWidth ? 24 : 20)
+                .padding(.vertical, isRegularWidth ? 16 : 12)
+                .toggleStyle(SwitchToggleStyle(tint: .green))
+
                 Divider()
                     .padding(.horizontal, isRegularWidth ? 24 : 20)
 
@@ -337,6 +365,7 @@ struct SettingsView: View {
                     .padding(.horizontal, isRegularWidth ? 24 : 20)
                     .padding(.vertical, isRegularWidth ? 16 : 12)
                 }
+
             }
             .background(
                 RoundedRectangle(cornerRadius: 12)
@@ -358,11 +387,14 @@ struct SettingsView: View {
     private var authStatusText: String {
         if !authManager.isAuthenticated {
             return "Niezalogowany"
-        } else if authManager.hasAppleIDLinked {
-            return "Zalogowany przez Apple ID"
-        } else {
-            return "Zalogowany"
         }
+        if authManager.isAnonymous {
+            return "Zalogowany anonimowo"
+        }
+        if authManager.hasAppleIDLinked {
+            return "Zalogowany przez Apple ID"
+        }
+        return "Zalogowany"
     }
     
     // MARK: - Private Methods

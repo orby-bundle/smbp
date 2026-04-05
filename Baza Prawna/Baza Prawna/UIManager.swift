@@ -18,6 +18,150 @@ struct SearchHelpAnchorPreferenceKey: PreferenceKey {
     }
 }
 
+// MARK: - MD Viewer (table of contents) help
+
+enum MDViewerHelpTarget: Hashable {
+    case tableOfContentsButton
+}
+
+struct MDViewerHelpAnchorPreferenceKey: PreferenceKey {
+    static var defaultValue: [MDViewerHelpTarget: Anchor<CGRect>] = [:]
+
+    static func reduce(value: inout [MDViewerHelpTarget: Anchor<CGRect>], nextValue: () -> [MDViewerHelpTarget: Anchor<CGRect>]) {
+        value.merge(nextValue(), uniquingKeysWith: { $1 })
+    }
+}
+
+// MARK: - MD viewer navigation help overlay
+
+struct MDViewerNavigationHelpOverlay: View {
+    let anchors: [MDViewerHelpTarget: Anchor<CGRect>]
+    let isVisible: Bool
+    let onComplete: () -> Void
+
+    var body: some View {
+        if isVisible {
+            GeometryReader { proxy in
+                if let (highlightRects, unionRect) = highlightRects(in: proxy) {
+                    ZStack {
+                        Color.black.opacity(0.55)
+                            .ignoresSafeArea()
+                            .overlay(
+                                ZStack {
+                                    ForEach(Array(highlightRects.enumerated()), id: \.offset) { _, rect in
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .frame(width: rect.width, height: rect.height)
+                                            .position(x: rect.midX, y: rect.midY)
+                                            .blendMode(.destinationOut)
+                                    }
+                                }
+                            )
+                            .compositingGroup()
+
+                        ForEach(Array(highlightRects.enumerated()), id: \.offset) { _, rect in
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.white, lineWidth: 2)
+                                .frame(width: rect.width, height: rect.height)
+                                .position(x: rect.midX, y: rect.midY)
+                        }
+
+                        coachMark(for: unionRect, in: proxy)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        onComplete()
+                    }
+                } else {
+                    ZStack {
+                        Color.black.opacity(0.55)
+                            .ignoresSafeArea()
+                        coachMarkCentered(in: proxy)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        onComplete()
+                    }
+                }
+            }
+            .transition(.opacity)
+        }
+    }
+
+    private func highlightRects(in proxy: GeometryProxy) -> ([CGRect], CGRect)? {
+        guard let anchor = anchors[.tableOfContentsButton] else { return nil }
+        let rect = proxy[anchor].insetBy(dx: -6, dy: -6)
+        return ([rect], rect)
+    }
+
+    @ViewBuilder
+    private func coachMarkCentered(in proxy: GeometryProxy) -> some View {
+        VStack {
+            Spacer()
+            Text("Nawiguj w dokumencie")
+                .font(.title3)
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 24)
+                .frame(maxWidth: proxy.size.width - 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(MDNavigationHelpBubbleBackground())
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                )
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    @ViewBuilder
+    private func coachMark(for targetRect: CGRect, in proxy: GeometryProxy) -> some View {
+        let placeBelow = targetRect.midY < proxy.size.height * 0.55
+        let bubbleOffset: CGFloat = 70
+        let rawBubbleY = placeBelow ? targetRect.maxY + bubbleOffset : targetRect.minY - bubbleOffset
+        let minY: CGFloat = 80
+        let maxY: CGFloat = proxy.size.height - 80
+        let bubbleY = min(max(rawBubbleY, minY), maxY)
+
+        VStack(spacing: 8) {
+            Text("Nawiguj w dokumencie")
+                .font(.title3)
+                .foregroundColor(.white)
+                .multilineTextAlignment(.center)
+                .lineLimit(nil)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 24)
+                .frame(maxWidth: proxy.size.width - 48)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(MDNavigationHelpBubbleBackground())
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                )
+        }
+        .position(x: proxy.size.width / 2, y: bubbleY)
+        .transition(.opacity)
+    }
+}
+
+private struct MDNavigationHelpBubbleBackground: ShapeStyle {
+    func _apply(to shape: inout _ShapeStyle_Shape) {
+        LinearGradient(
+            colors: [Color.blue, Color.cyan],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        .opacity(0.95)
+        ._apply(to: &shape)
+    }
+}
+
 //Search Button
 struct SearchButton: View {
     let title: String
