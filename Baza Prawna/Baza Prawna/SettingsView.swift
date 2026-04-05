@@ -297,6 +297,29 @@ struct SettingsView: View {
                 .padding(.vertical, isRegularWidth ? 16 : 12)
                 .toggleStyle(SwitchToggleStyle(tint: .blue))
 
+                Toggle(isOn: Binding(
+                    get: { appStateManager.forceShowMDNavigationHelp },
+                    set: { newValue in
+                        if newValue {
+                            appStateManager.resetMDNavigationHelp()
+                        } else {
+                            appStateManager.markMDNavigationHelpSeen()
+                        }
+                    }
+                )) {
+                    HStack {
+                        Image(systemName: "list.bullet")
+                            .font(.title3)
+                            .foregroundColor(.green)
+                        Text("Pokaż pomoc nawigacji w akcie (MD)")
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                    }
+                }
+                .padding(.horizontal, isRegularWidth ? 24 : 20)
+                .padding(.vertical, isRegularWidth ? 16 : 12)
+                .toggleStyle(SwitchToggleStyle(tint: .green))
+
                 Divider()
                     .padding(.horizontal, isRegularWidth ? 24 : 20)
 

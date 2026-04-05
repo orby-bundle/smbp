@@ -364,14 +364,14 @@ enum MarkdownRenderer {
     }
 
     mark.user-note-highlight {
-        background-color: rgba(255, 200, 0, 0.42);
+        background-color: rgba(52, 199, 89, 0.35);
         color: inherit;
         padding: 1px 2px;
         border-radius: 2px;
     }
     @media (prefers-color-scheme: dark) {
         mark.user-note-highlight {
-            background-color: rgba(255, 200, 50, 0.32);
+            background-color: rgba(48, 209, 88, 0.30);
         }
     }
     """
@@ -505,7 +505,10 @@ extension MarkdownRenderer {
         if (!b64) return;
         let items;
         try {
-            const json = atob(b64);
+            const bin = atob(b64);
+            const bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+            const json = new TextDecoder().decode(bytes);
             items = JSON.parse(json);
         } catch (e) { return; }
         if (!Array.isArray(items)) return;
@@ -878,6 +881,7 @@ struct MDViewer: View {
 
     // Notes
     @ObservedObject private var notesManager = NotesManager.shared
+    @ObservedObject private var appStateManager = AppStateManager.shared
     @State private var showNotesSheet = false
     @State private var noteEditorSheet: NoteEditorSheetState?
     @State private var newNoteText = ""
@@ -918,6 +922,11 @@ struct MDViewer: View {
             isFavorited: isFavorited,
             favoritesManager: favoritesManager
         )
+    }
+
+    /// Spotlight + coach mark for the table-of-contents control (only when the document has headings).
+    private var showMDNavigationHelpOverlay: Bool {
+        appStateManager.shouldShowMDNavigationHelp && !tocEntries.isEmpty
     }
 
     var body: some View {
@@ -1054,7 +1063,10 @@ struct MDViewer: View {
                         showTOC = true
                     } label: {
                         Image(systemName: "list.bullet")
+                            .font(.system(size: showMDNavigationHelpOverlay ? 18 : 16, weight: showMDNavigationHelpOverlay ? .semibold : .medium))
+                            .foregroundStyle(showMDNavigationHelpOverlay ? Color.blue : Color.primary)
                     }
+                    .anchorPreference(key: MDViewerHelpAnchorPreferenceKey.self, value: .bounds) { [.tableOfContentsButton: $0] }
                 }
             }
         }
@@ -1066,8 +1078,11 @@ struct MDViewer: View {
                         .foregroundColor(.secondary)
                     Text(fragmentText(for: state))
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
                         .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.green.opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
                         .textSelection(.enabled)
                     Text("Treść notatki")
                         .font(.caption)
@@ -1148,6 +1163,20 @@ struct MDViewer: View {
         }
         .alert("Zaznacz fragment tekstu w dokumencie", isPresented: $noSelectionAlert) {
             Button("OK", role: .cancel) {}
+        }
+        .overlayPreferenceValue(MDViewerHelpAnchorPreferenceKey.self) { anchors in
+            MDViewerNavigationHelpOverlay(
+                anchors: anchors,
+                isVisible: showMDNavigationHelpOverlay,
+                onComplete: {
+                    appStateManager.markMDNavigationHelpSeen()
+                }
+            )
+        }
+        .onChange(of: isLoading) { _, loading in
+            if !loading, tocEntries.isEmpty, appStateManager.shouldShowMDNavigationHelp {
+                appStateManager.markMDNavigationHelpSeen()
+            }
         }
         .onAppear {
             loadMarkdown()
