@@ -173,7 +173,7 @@ struct SearchEU_View: View, SearchResettable {
                             },
                             hideResultsOnTap: true,
                             showingResults: $showingResults,
-                            searchPremiumCheck: { PaywallManager.shared.checkPremiumAccess() },
+                            searchPremiumCheck: nil, // No premium check for search (free feature)
                             alertPremiumCheck: { PaywallManager.shared.checkPremiumAccess() }
                         )
                         
