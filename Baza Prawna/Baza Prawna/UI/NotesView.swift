@@ -131,16 +131,22 @@ struct MDDocumentNotesSheet: View {
                                 VStack(alignment: .leading, spacing: 8) {
                                     Text(note.anchor.exact)
                                         .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                                        .foregroundColor(.primary)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 3)
+                                        .background(Color.green.opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
                                         .lineLimit(4)
                                         .multilineTextAlignment(.leading)
                                     Text(note.noteText)
                                         .font(.body)
+                                        .italic()
+                                        .foregroundStyle(.primary)
                                         .lineLimit(8)
                                         .multilineTextAlignment(.leading)
                                 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            .buttonStyle(.plain)
                             .swipeActions(edge: .leading, allowsFullSwipe: false) {
                                 Button {
                                     onEdit(note)

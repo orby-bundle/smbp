@@ -582,24 +582,24 @@ private struct DocumentTileTopBanners: View {
             if showPDFBanner {
                 tileBanner(icon: "doc.fill", text: "PDF")
             } else if hasNotes {
-                tileBanner(icon: "note.text", text: "z notatkami")
+                tileBanner(icon: "note.text", text: "z notatkami", notesStyle: true)
             }
         }
     }
     
-    private func tileBanner(icon: String, text: String) -> some View {
+    private func tileBanner(icon: String, text: String, notesStyle: Bool = false) -> some View {
         HStack(spacing: 4) {
             Image(systemName: icon)
                 .font(isRegularWidth ? .caption.weight(.semibold) : .caption2.weight(.semibold))
             Text(text)
                 .font(isRegularWidth ? .caption.weight(.semibold) : .caption2.weight(.semibold))
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(notesStyle ? .primary : .secondary)
         .padding(.horizontal, isRegularWidth ? 10 : 8)
         .padding(.vertical, isRegularWidth ? 5 : 4)
         .background(
             Capsule(style: .continuous)
-                .fill(Color(.secondarySystemFill))
+                .fill(notesStyle ? Color.green.opacity(0.2) : Color(.secondarySystemFill))
         )
     }
 }
