@@ -101,7 +101,13 @@ struct Search_CourtPL_View: View, SearchResettable {
                         // Basic Search Section
                         VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                             VStack(spacing: horizontalSizeClass == .regular ? 16 : 12) {
-                                CourtSearchField(title: "Szukaj", text: $state.searchText, placeholder: "Treść orzeczenia lub część sygnatury")                                
+                                CourtSearchField(
+                                    title: "Szukaj",
+                                    text: $state.searchText,
+                                    placeholder: "Treść orzeczenia lub część sygnatury",
+                                    textFieldMinHeight: 72,
+                                    textFieldFont: .title3
+                                )
                                 CourtSearchField(title: "Dokładny numer sygnatury", text: $state.caseNumber, placeholder: "np. I Ca 123/24")
                                 
                                 // Court Type Picker - Commented out, default set to commonCourts
@@ -560,6 +566,8 @@ struct CourtSearchField: View {
     let title: String
     @Binding var text: String
     let placeholder: String
+    var textFieldMinHeight: CGFloat? = nil
+    var textFieldFont: Font? = nil
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
@@ -571,13 +579,27 @@ struct CourtSearchField: View {
             
             HStack {
                 TextField(placeholder, text: $text)
+                    .font(textFieldFont ?? .body)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .modifier(CourtSearchFieldOptionalMinHeight(minHeight: textFieldMinHeight))
                 
                 ClearSearchButton(
                     searchText: $text,
                     onClear: { }
                 )
             }
+        }
+    }
+}
+
+private struct CourtSearchFieldOptionalMinHeight: ViewModifier {
+    let minHeight: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let h = minHeight {
+            content.frame(minHeight: h)
+        } else {
+            content
         }
     }
 }

@@ -83,7 +83,13 @@ struct Search_CourtNSA_View: View, SearchResettable {
                         // Basic Search Section
                         VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                             VStack(spacing: horizontalSizeClass == .regular ? 16 : 12) {
-                                NSASearchField(title: "Szukaj", text: $state.searchText, placeholder: "Treść orzeczenia lub część sygnatury")
+                                NSASearchField(
+                                    title: "Szukaj",
+                                    text: $state.searchText,
+                                    placeholder: "Treść orzeczenia lub część sygnatury",
+                                    textFieldMinHeight: 72,
+                                    textFieldFont: .title3
+                                )
                                 
                                 NSASearchField(title: "Dokładny numer sygnatury", text: $state.caseSignature, placeholder: "np. II SA/Ol 564/25")
                                 
@@ -544,6 +550,8 @@ struct NSASearchField: View {
     let title: String
     @Binding var text: String
     let placeholder: String
+    var textFieldMinHeight: CGFloat? = nil
+    var textFieldFont: Font? = nil
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
@@ -555,13 +563,27 @@ struct NSASearchField: View {
             
             HStack {
                 TextField(placeholder, text: $text)
+                    .font(textFieldFont ?? .body)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .modifier(NSASearchFieldOptionalMinHeight(minHeight: textFieldMinHeight))
                 
                 ClearSearchButton(
                     searchText: $text,
                     onClear: { }
                 )
             }
+        }
+    }
+}
+
+private struct NSASearchFieldOptionalMinHeight: ViewModifier {
+    let minHeight: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let h = minHeight {
+            content.frame(minHeight: h)
+        } else {
+            content
         }
     }
 }

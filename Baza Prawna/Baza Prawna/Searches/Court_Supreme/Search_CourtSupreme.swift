@@ -69,7 +69,13 @@ struct Search_CourtSupreme_View: View, SearchResettable {
                         // Basic Search Section
                         VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                             VStack(spacing: horizontalSizeClass == .regular ? 16 : 12) {
-                                SupremeCourtSearchField(title: "Treść orzeczenia", text: $state.searchText, placeholder: "Szukaj w treści orzeczenia i uzasadnienia")
+                                SupremeCourtSearchField(
+                                    title: "Treść orzeczenia",
+                                    text: $state.searchText,
+                                    placeholder: "Szukaj w treści orzeczenia i uzasadnienia",
+                                    textFieldMinHeight: 72,
+                                    textFieldFont: .title3
+                                )
                                 
                                 SupremeCourtSearchField(title: "Sygnatura", text: $state.caseSignature, placeholder: "np. I CSK 123/2023")
                                 
@@ -330,6 +336,8 @@ struct SupremeCourtSearchField: View {
     let title: String
     @Binding var text: String
     let placeholder: String
+    var textFieldMinHeight: CGFloat? = nil
+    var textFieldFont: Font? = nil
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
@@ -341,13 +349,27 @@ struct SupremeCourtSearchField: View {
             
             HStack {
                 TextField(placeholder, text: $text)
+                    .font(textFieldFont ?? .body)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .modifier(SupremeCourtSearchFieldOptionalMinHeight(minHeight: textFieldMinHeight))
                 
                 ClearSearchButton(
                     searchText: $text,
                     onClear: { }
                 )
             }
+        }
+    }
+}
+
+private struct SupremeCourtSearchFieldOptionalMinHeight: ViewModifier {
+    let minHeight: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let h = minHeight {
+            content.frame(minHeight: h)
+        } else {
+            content
         }
     }
 }

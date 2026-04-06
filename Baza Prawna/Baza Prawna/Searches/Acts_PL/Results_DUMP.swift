@@ -216,7 +216,7 @@ struct ActRowView: View {
                                 .foregroundColor(.secondary)
                             
                             NavigationLink(destination: MDViewer(title: act.title ?? act.displayAddress, eli: act.ELI)) {
-                                Text("Czytać")
+                                Text("Czytaj")
                                     .font(horizontalSizeClass == .regular ? .body : .subheadline)
                                     .fontWeight(.medium)
                                     .foregroundColor(.blue)

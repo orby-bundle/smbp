@@ -67,7 +67,9 @@ struct SearchLegislacjaView: View, SearchResettable {
                                     title: "Tytuł lub Opis",
                                     text: $state.title,
                                     placeholder: "Poszukiwana treść",
-                                    disabled: !state.number.isEmpty
+                                    disabled: !state.number.isEmpty,
+                                    textFieldMinHeight: 72,
+                                    textFieldFont: .title3
                                 )
                                 .onChange(of: state.title) { _, newValue in
                                     // Clear number field when title gets input

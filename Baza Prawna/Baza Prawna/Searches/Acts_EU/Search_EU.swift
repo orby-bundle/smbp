@@ -75,7 +75,13 @@ struct SearchEU_View: View, SearchResettable {
                         // Basic Search Section
                         VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 20 : 16) {
                             VStack(spacing: horizontalSizeClass == .regular ? 16 : 12) {
-                                EUSearchField(title: "Szukaj", text: $state.searchText, placeholder: "Słowa kluczowe w tytule lub treści")
+                                EUSearchField(
+                                    title: "Szukaj",
+                                    text: $state.searchText,
+                                    placeholder: "Słowa kluczowe w tytule lub treści",
+                                    textFieldMinHeight: 72,
+                                    textFieldFont: .title3
+                                )
                                 
                                 // Language Picker
                                 HStack {
@@ -408,6 +414,8 @@ struct EUSearchField: View {
     let title: String
     @Binding var text: String
     let placeholder: String
+    var textFieldMinHeight: CGFloat? = nil
+    var textFieldFont: Font? = nil
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
     
     var body: some View {
@@ -419,13 +427,27 @@ struct EUSearchField: View {
             
             HStack {
                 TextField(placeholder, text: $text)
+                    .font(textFieldFont ?? .body)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
+                    .modifier(EUSearchFieldOptionalMinHeight(minHeight: textFieldMinHeight))
                 
                 ClearSearchButton(
                     searchText: $text,
                     onClear: { }
                 )
             }
+        }
+    }
+}
+
+private struct EUSearchFieldOptionalMinHeight: ViewModifier {
+    let minHeight: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let h = minHeight {
+            content.frame(minHeight: h)
+        } else {
+            content
         }
     }
 }

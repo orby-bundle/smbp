@@ -152,7 +152,13 @@ struct SearchView: View, SearchResettable {
                                     }
                                 }
                             }
-                            SearchField(title: "Tytuł", text: $state.title, placeholder: "Poszukiwana treść")
+                            SearchField(
+                                title: "Tytuł",
+                                text: $state.title,
+                                placeholder: "Poszukiwana treść",
+                                textFieldMinHeight: 72,
+                                textFieldFont: .title3
+                            )
                                 .anchorPreference(key: SearchHelpAnchorPreferenceKey.self, value: .bounds) { [.titleField: $0] }
                             PickerField(title: "Typ dokumentu", selection: $state.selectedDocumentType)
                                 .anchorPreference(key: SearchHelpAnchorPreferenceKey.self, value: .bounds) { [.documentType: $0] }
@@ -721,7 +727,11 @@ struct SearchField: View {
     @Binding var text: String
     let placeholder: String
     var disabled: Bool = false
-    
+    /// Minimum height for the text field (e.g. ~2× default ~36pt single-line height).
+    var textFieldMinHeight: CGFloat? = nil
+    /// Typography for typed text and placeholder; defaults to body.
+    var textFieldFont: Font? = nil
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title)
@@ -731,8 +741,10 @@ struct SearchField: View {
             
             HStack {
                 TextField(placeholder, text: $text)
+                    .font(textFieldFont ?? .body)
                     .textFieldStyle(RoundedBorderTextFieldStyle())
                     .disabled(disabled)
+                    .modifier(SearchFieldOptionalMinHeight(minHeight: textFieldMinHeight))
                 
                 ClearSearchButton(
                     searchText: $text,
@@ -741,6 +753,18 @@ struct SearchField: View {
                 .disabled(disabled)
             }
             .opacity(disabled ? 0.6 : 1.0)
+        }
+    }
+}
+
+private struct SearchFieldOptionalMinHeight: ViewModifier {
+    let minHeight: CGFloat?
+
+    func body(content: Content) -> some View {
+        if let h = minHeight {
+            content.frame(minHeight: h)
+        } else {
+            content
         }
     }
 }
