@@ -368,6 +368,8 @@ enum MarkdownRenderer {
         color: inherit;
         padding: 1px 2px;
         border-radius: 2px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: rgba(52, 199, 89, 0.25);
     }
     @media (prefers-color-scheme: dark) {
         mark.user-note-highlight {
@@ -549,6 +551,25 @@ extension MarkdownRenderer {
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
+    function installNoteHighlightTapHandler() {
+        if (window.__noteTapInstalled) return;
+        window.__noteTapInstalled = true;
+        document.body.addEventListener('click', function(ev) {
+            let el = ev.target;
+            if (el.nodeType === Node.TEXT_NODE) el = el.parentElement;
+            const mark = el && el.closest ? el.closest('mark.user-note-highlight[data-note-id]') : null;
+            if (!mark) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = mark.getAttribute('data-note-id');
+            if (!id) return;
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.noteHighlightTap) {
+                window.webkit.messageHandlers.noteHighlightTap.postMessage({ noteId: id });
+            }
+        }, true);
+    }
+    installNoteHighlightTapHandler();
+
     window.noteFunctions = {
         getSelectionPayload: getSelectionPayload,
         applyNotesFromBase64: applyNotesFromBase64,
@@ -591,19 +612,23 @@ struct MarkdownWebView: UIViewRepresentable {
     let onDocumentLoaded: (() -> Void)?
     /// Shown in the system text selection menu next to Copy, Look Up, etc.
     var onAddNoteFromContextMenu: (() -> Void)?
+    /// User tapped a green `mark.user-note-highlight` in the document.
+    var onNoteHighlightTap: ((String) -> Void)?
 
     init(html: String,
          scrollToID: Binding<String?>,
          onSearchResults: @escaping (Int, Int) -> Void = { _, _ in },
          onCoordinatorReady: @escaping (Coordinator) -> Void = { _ in },
          onDocumentLoaded: (() -> Void)? = nil,
-         onAddNoteFromContextMenu: (() -> Void)? = nil) {
+         onAddNoteFromContextMenu: (() -> Void)? = nil,
+         onNoteHighlightTap: ((String) -> Void)? = nil) {
         self.html = html
         self._scrollToID = scrollToID
         self.onSearchResults = onSearchResults
         self.onCoordinatorReady = onCoordinatorReady
         self.onDocumentLoaded = onDocumentLoaded
         self.onAddNoteFromContextMenu = onAddNoteFromContextMenu
+        self.onNoteHighlightTap = onNoteHighlightTap
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -611,6 +636,7 @@ struct MarkdownWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.userContentController.add(context.coordinator, name: "searchResults")
+        config.userContentController.add(context.coordinator, name: "noteHighlightTap")
         let webView = MarkdownWKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         context.coordinator.webView = webView
@@ -659,6 +685,7 @@ struct MarkdownWebView: UIViewRepresentable {
 
     static func dismantleUIView(_ uiView: WKWebView, coordinator: Coordinator) {
         uiView.configuration.userContentController.removeScriptMessageHandler(forName: "searchResults")
+        uiView.configuration.userContentController.removeScriptMessageHandler(forName: "noteHighlightTap")
         (uiView as? MarkdownWKWebView)?.onAddNoteFromSelection = nil
     }
 
@@ -768,11 +795,19 @@ struct MarkdownWebView: UIViewRepresentable {
 
         func userContentController(_ userContentController: WKUserContentController,
                                    didReceive message: WKScriptMessage) {
-            guard message.name == "searchResults",
-                  let body = message.body as? [String: Any],
-                  let count = body["count"] as? Int,
-                  let currentIndex = body["currentIndex"] as? Int else { return }
-            DispatchQueue.main.async { self.searchResultsHandler?(count, currentIndex) }
+            switch message.name {
+            case "searchResults":
+                guard let body = message.body as? [String: Any],
+                      let count = body["count"] as? Int,
+                      let currentIndex = body["currentIndex"] as? Int else { return }
+                DispatchQueue.main.async { self.searchResultsHandler?(count, currentIndex) }
+            case "noteHighlightTap":
+                guard let body = message.body as? [String: Any],
+                      let noteId = body["noteId"] as? String else { return }
+                DispatchQueue.main.async { self.parent.onNoteHighlightTap?(noteId) }
+            default:
+                break
+            }
         }
 
         // MARK: Navigation
@@ -994,6 +1029,11 @@ struct MDViewer: View {
                             },
                             onAddNoteFromContextMenu: {
                                 tryAddNoteFromSelection()
+                            },
+                            onNoteHighlightTap: { noteId in
+                                guard let note = notesManager.note(id: noteId) else { return }
+                                newNoteText = note.noteText
+                                noteEditorSheet = .editing(note)
                             }
                         )
                         .opacity(isLoading ? 0.001 : 1)
