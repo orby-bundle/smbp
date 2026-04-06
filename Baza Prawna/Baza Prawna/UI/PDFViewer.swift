@@ -10,10 +10,188 @@ import PDFKit
 import Combine
 import UniformTypeIdentifiers
 
+// MARK: - PDF note highlight annotation
+
+private final class BazaPDFNoteHighlightAnnotation: PDFAnnotation {
+    let noteId: String
+
+    init(bounds: CGRect, noteId: String) {
+        self.noteId = noteId
+        super.init(bounds: bounds, forType: .highlight, withProperties: nil)
+        color = UIColor.systemGreen.withAlphaComponent(0.35)
+    }
+
+    required init?(coder: NSCoder) {
+        return nil
+    }
+}
+
+// MARK: - Resolve quoted text on a PDF page (prefix + exact + suffix)
+
+private enum PDFQuoteResolver {
+    static func rangeInPageText(_ full: String, exact: String, prefix: String, suffix: String) -> NSRange? {
+        let ns = full as NSString
+        let needle = prefix + exact + suffix
+        var r = ns.range(of: needle)
+        if r.location != NSNotFound {
+            let start = r.location + (prefix as NSString).length
+            let len = (exact as NSString).length
+            return NSRange(location: start, length: len)
+        }
+        r = ns.range(of: exact)
+        if r.location == NSNotFound { return nil }
+        let rest = NSRange(location: r.location + 1, length: ns.length - r.location - 1)
+        if rest.length > 0, ns.range(of: exact, options: [], range: rest).location != NSNotFound {
+            return nil
+        }
+        return r
+    }
+
+    static func anchor(from selection: PDFSelection, document: PDFDocument) -> TextQuoteAnchor? {
+        guard let raw = selection.string?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty,
+              let page = selection.pages.first else { return nil }
+        let pageIndex = document.index(for: page)
+        let pageText = page.string ?? ""
+        guard let range = rangeInPageText(pageText, exact: raw, prefix: "", suffix: "") else { return nil }
+        let start = range.location
+        let end = start + range.length
+        let prefix = (pageText as NSString).substring(with: NSRange(location: max(0, start - 64), length: min(64, start)))
+        let suffixLen = min(64, pageText.count - end)
+        let suffix = suffixLen > 0 ? (pageText as NSString).substring(with: NSRange(location: end, length: suffixLen)) : ""
+        return TextQuoteAnchor(
+            exact: raw,
+            prefix: prefix,
+            suffix: suffix,
+            headingId: nil,
+            pdfPageIndex: pageIndex
+        )
+    }
+
+    static func selection(for note: DocumentNote, document: PDFDocument) -> PDFSelection? {
+        guard let pageIdx = note.anchor.pdfPageIndex,
+              let page = document.page(at: pageIdx) else { return nil }
+        let full = page.string ?? ""
+        guard let range = rangeInPageText(
+            full,
+            exact: note.anchor.exact,
+            prefix: note.anchor.prefix,
+            suffix: note.anchor.suffix
+        ) else { return nil }
+        return page.selection(for: range)
+    }
+}
+
+// MARK: - PDFKit note bridge (selection, highlights, scroll)
+
+final class PDFKitNoteBridge {
+    weak var pdfView: NoteAwarePDFView?
+
+    func anchorFromCurrentSelection(document: PDFDocument) -> TextQuoteAnchor? {
+        guard let pdfView,
+              let sel = pdfView.currentSelection else { return nil }
+        return PDFQuoteResolver.anchor(from: sel, document: document)
+    }
+
+    func applyUserNotes(_ notes: [DocumentNote], document: PDFDocument) {
+        clearUserNoteAnnotations(from: document)
+        for note in notes {
+            guard note.anchor.pdfPageIndex != nil,
+                  let selection = PDFQuoteResolver.selection(for: note, document: document) else { continue }
+            // iOS PDFSelection has no `selections(by:)`; use union bounds per page (same as one highlight region).
+            for page in selection.pages {
+                let bounds = selection.bounds(for: page)
+                guard !bounds.isNull, bounds.width > 0, bounds.height > 0 else { continue }
+                let ann = BazaPDFNoteHighlightAnnotation(bounds: bounds, noteId: note.id)
+                page.addAnnotation(ann)
+            }
+        }
+    }
+
+    func scrollToUserNote(_ note: DocumentNote, document: PDFDocument) {
+        guard let pdfView,
+              let selection = PDFQuoteResolver.selection(for: note, document: document) else { return }
+        pdfView.go(to: selection)
+    }
+
+    private func clearUserNoteAnnotations(from document: PDFDocument) {
+        for i in 0..<document.pageCount {
+            guard let page = document.page(at: i) else { continue }
+            let toRemove = page.annotations.filter { $0 is BazaPDFNoteHighlightAnnotation }
+            for ann in toRemove {
+                page.removeAnnotation(ann)
+            }
+        }
+    }
+}
+
+// MARK: - PDFView with “Dodaj notatkę” + tap on note highlights
+
+/// Internal to this module so `PDFKitNoteBridge` can hold a reference without access-control errors.
+final class NoteAwarePDFView: PDFView {
+    var onAddNoteFromSelection: (() -> Void)?
+    var onNoteHighlightTapped: ((String) -> Void)?
+
+    override func buildMenu(with builder: any UIMenuBuilder) {
+        super.buildMenu(with: builder)
+        guard onAddNoteFromSelection != nil else { return }
+        guard let sel = currentSelection,
+              let t = sel.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !t.isEmpty else { return }
+        let addNote = UIAction(
+            title: "Dodaj notatkę",
+            image: UIImage(systemName: "square.and.pencil")
+        ) { [weak self] _ in
+            self?.onAddNoteFromSelection?()
+        }
+        let inline = UIMenu(title: "", options: .displayInline, children: [addNote])
+        builder.insertSibling(inline, beforeMenu: .standardEdit)
+    }
+
+    @objc func handleNoteHighlightTap(_ gesture: UITapGestureRecognizer) {
+        guard gesture.state == .ended, let onNoteHighlightTapped else { return }
+        let location = gesture.location(in: self)
+        guard let page = self.page(for: location, nearest: true) else { return }
+        let p = convert(location, to: page)
+        for ann in page.annotations.reversed() {
+            guard let hi = ann as? BazaPDFNoteHighlightAnnotation else { continue }
+            if hi.bounds.contains(p) {
+                onNoteHighlightTapped(hi.noteId)
+                return
+            }
+        }
+    }
+}
+
 // MARK: - Unified PDF Viewer
 struct UnifiedPDFViewer: View {
     let title: String
     let pdfDataProvider: () async throws -> Data
+    private let favoriteDocumentId: String?
+    private let pdfEli: String?
+    private let pdfCelex: String?
+
+    init(
+        title: String,
+        pdfDataProvider: @escaping () async throws -> Data,
+        favoriteDocumentId: String? = nil,
+        pdfEli: String? = nil,
+        pdfCelex: String? = nil
+    ) {
+        self.title = title
+        self.pdfDataProvider = pdfDataProvider
+        self.favoriteDocumentId = favoriteDocumentId
+        self.pdfEli = pdfEli
+        self.pdfCelex = pdfCelex
+    }
+
+    private var pdfNotesDocumentKey: String {
+        NotesManager.pdfNotesDocumentKey(
+            title: title,
+            favoriteDocumentId: favoriteDocumentId,
+            eli: pdfEli,
+            celex: pdfCelex
+        )
+    }
     @State private var pdfDocument: PDFDocument?
     @State private var isLoading = true
     @State private var errorMessage: String?
@@ -33,14 +211,18 @@ struct UnifiedPDFViewer: View {
     @State private var totalPages = 0
     @State private var showingPageControls = false
     
-    // Info sheet
-    @State private var showingInfoSheet = false
-    
     // Favorites
     @StateObject private var favoritesManager = FavoritesManager.shared
     @State private var isFavorited = false
     @State private var showingRemoveConfirmation = false
-    
+
+    // Notes
+    @ObservedObject private var notesManager = NotesManager.shared
+    @State private var pdfNoteBridge: PDFKitNoteBridge?
+    @State private var showNotesSheet = false
+    @State private var noteEditorSheet: NoteEditorSheetState?
+    @State private var newNoteText = ""
+    @State private var noSelectionAlert = false
     
     var body: some View {
         NavigationStack {
@@ -114,7 +296,23 @@ struct UnifiedPDFViewer: View {
                             searchResults: $searchResults,
                             currentSearchIndex: $currentSearchIndex,
                             currentPage: $currentPage,
-                            onPageChange: goToPage
+                            onPageChange: goToPage,
+                            userNotes: notesManager.notes(forDocumentKey: pdfNotesDocumentKey),
+                            onBridgeReady: { bridge in
+                                pdfNoteBridge = bridge
+                                bridge.applyUserNotes(
+                                    notesManager.notes(forDocumentKey: pdfNotesDocumentKey),
+                                    document: pdfDocument
+                                )
+                            },
+                            onNoteHighlightTap: { noteId in
+                                guard let note = notesManager.note(id: noteId) else { return }
+                                newNoteText = note.noteText
+                                noteEditorSheet = .editing(note)
+                            },
+                            onAddNoteFromMenu: {
+                                tryAddNoteFromSelection()
+                            }
                         )
                         .opacity(pdfOpacity)
                     } else {
@@ -212,12 +410,11 @@ struct UnifiedPDFViewer: View {
                         }
                     }
                     
-                    // Info button as its own toolbar item
                     ToolbarItem(placement: .navigationBarTrailing) {
-                        Button(action: {
-                            showingInfoSheet = true
-                        }) {
-                            Image(systemName: "info.circle")
+                        Button {
+                            showNotesSheet = true
+                        } label: {
+                            Image(systemName: "note.text")
                         }
                     }
                     
@@ -243,11 +440,84 @@ struct UnifiedPDFViewer: View {
                 }
             }
         }
-        .sheet(isPresented: $showingInfoSheet) {
-            DocumentInfoSheet(
-                title: title,
-                document: pdfDocument
+        .sheet(item: $noteEditorSheet) { state in
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Fragment")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    Text(fragmentText(for: state))
+                        .font(.subheadline)
+                        .foregroundColor(.primary)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 3)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.green.opacity(0.2), in: RoundedRectangle(cornerRadius: 4))
+                        .textSelection(.enabled)
+                    Text("Treść notatki")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    NoteBodyTextEditor(text: $newNoteText, autoFocusKeyboard: state.autoFocusNoteBodyKeyboard)
+                        .frame(minHeight: 160)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color(.separator), lineWidth: 0.5)
+                        )
+                }
+                .padding()
+                .navigationTitle(editorTitle(for: state))
+                .navigationBarTitleDisplayMode(.inline)
+                .onAppear {
+                    if case .editing(let note) = state {
+                        newNoteText = note.noteText
+                    }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Anuluj") {
+                            noteEditorSheet = nil
+                            newNoteText = ""
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Zapisz") {
+                            saveNoteEditor(state: state)
+                        }
+                        .disabled(newNoteText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showNotesSheet) {
+            MDDocumentNotesSheet(
+                notes: notesManager.notes(forDocumentKey: pdfNotesDocumentKey),
+                onAddFromSelection: {
+                    showNotesSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        tryAddNoteFromSelection()
+                    }
+                },
+                onSelectNote: { note in
+                    pdfNoteBridge?.scrollToUserNote(note, document: pdfDocument!)
+                    showNotesSheet = false
+                },
+                onEdit: { note in
+                    showNotesSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        newNoteText = note.noteText
+                        noteEditorSheet = .editing(note)
+                    }
+                },
+                onDelete: { note in
+                    notesManager.remove(id: note.id)
+                    if let doc = pdfDocument {
+                        pdfNoteBridge?.applyUserNotes(notesManager.notes(forDocumentKey: pdfNotesDocumentKey), document: doc)
+                    }
+                }
             )
+        }
+        .alert("Zaznacz fragment tekstu w dokumencie", isPresented: $noSelectionAlert) {
+            Button("OK", role: .cancel) {}
         }
         .confirmationDialog(
             "Czy na pewno chcesz usunąć ze Swoich Akt?",
@@ -359,7 +629,53 @@ struct UnifiedPDFViewer: View {
     }
     
     private func findPDFView() -> PDFView? {
-        return nil 
+        pdfNoteBridge?.pdfView
+    }
+
+    private func refreshPDFNoteHighlights() {
+        guard let doc = pdfDocument else { return }
+        pdfNoteBridge?.applyUserNotes(notesManager.notes(forDocumentKey: pdfNotesDocumentKey), document: doc)
+    }
+
+    private func tryAddNoteFromSelection() {
+        guard let doc = pdfDocument else { return }
+        guard let anchor = pdfNoteBridge?.anchorFromCurrentSelection(document: doc) else {
+            noSelectionAlert = true
+            return
+        }
+        newNoteText = ""
+        noteEditorSheet = .newNote(anchor: anchor, draftId: UUID())
+    }
+
+    private func saveNoteEditor(state: NoteEditorSheetState) {
+        let trimmed = newNoteText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let key = pdfNotesDocumentKey
+        switch state {
+        case .newNote(let anchor, _):
+            let note = DocumentNote(documentKey: key, noteText: trimmed, anchor: anchor)
+            notesManager.add(note)
+            noteEditorSheet = nil
+            newNoteText = ""
+            Task { @MainActor in
+                let ok = await notesManager.ensurePDFInFavoritesAndMigrateNotesIfNeeded(
+                    title: title,
+                    favoriteDocumentIdWhenOpened: favoriteDocumentId,
+                    pdfEli: pdfEli,
+                    pdfCelex: pdfCelex,
+                    pdfData: pdfDocument?.dataRepresentation(),
+                    favoritesManager: favoritesManager
+                )
+                if ok { isFavorited = true }
+                refreshPDFNoteHighlights()
+            }
+        case .editing(var note):
+            note.noteText = trimmed
+            notesManager.update(note)
+            noteEditorSheet = nil
+            newNoteText = ""
+            refreshPDFNoteHighlights()
+        }
     }
     
     // MARK: - Page Navigation
@@ -425,20 +741,20 @@ struct UnifiedPDFViewer: View {
     // MARK: - Favorites Functionality
     private func addToFavorites() {
         if let pdfData = pdfDocument?.dataRepresentation() {
-            favoritesManager.addFavorite(title: title, pdfData: pdfData)
+            favoritesManager.addFavorite(title: title, pdfData: pdfData, fileExtension: "pdf")
             isFavorited = true
         }
     }
     
     private func removeFromFavorites() {
-        if let id = favoritesManager.getFavoriteID(title: title) {
+        if let id = favoritesManager.getFavoriteID(title: title, fileExtension: "pdf") {
             favoritesManager.removeFavorite(id: id)
             isFavorited = false
         }
     }
     
     private func checkFavoriteStatus() {
-        isFavorited = favoritesManager.isFavorite(title: title)
+        isFavorited = favoritesManager.isFavorite(title: title, fileExtension: "pdf")
     }
 }
 
@@ -448,79 +764,103 @@ struct PDFKitView: UIViewRepresentable {
     @Binding var currentSearchIndex: Int
     @Binding var currentPage: Int
     let onPageChange: (Int) -> Void
-    
+    let userNotes: [DocumentNote]
+    let onBridgeReady: (PDFKitNoteBridge) -> Void
+    let onNoteHighlightTap: (String) -> Void
+    let onAddNoteFromMenu: () -> Void
+
     func makeUIView(context: Context) -> PDFView {
-        let pdfView = PDFView()
+        let pdfView = NoteAwarePDFView()
         pdfView.document = document
         pdfView.autoScales = true
         pdfView.displayMode = .singlePageContinuous
         pdfView.displayDirection = .vertical
         pdfView.displayBox = .cropBox
         pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
-        
-        // Set yellow highlighting for search results to match HTMLViewer
         pdfView.highlightedSelections = []
-        if let selection = pdfView.currentSelection {
-            selection.color = UIColor.systemYellow
-        }
-        
-        // Store reference for search functionality and page navigation
-        context.coordinator.pdfView = pdfView
+
+        let bridge = PDFKitNoteBridge()
+        bridge.pdfView = pdfView
+        context.coordinator.bridge = bridge
+        context.coordinator.notePDFView = pdfView
         context.coordinator.onPageChange = onPageChange
         context.coordinator.currentPageBinding = $currentPage
-        
-        // Set up page change notification
+
+        syncNoteCallbacks(pdfView, context: context)
+
+        let tap = UITapGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleNoteTap(_:)))
+        tap.cancelsTouchesInView = false
+        pdfView.addGestureRecognizer(tap)
+
         NotificationCenter.default.addObserver(
             context.coordinator,
             selector: #selector(Coordinator.pageChanged),
             name: .PDFViewPageChanged,
             object: pdfView
         )
-        
-        // Set up document change notification for proper scaling
         NotificationCenter.default.addObserver(
             context.coordinator,
             selector: #selector(Coordinator.documentChanged),
             name: .PDFViewDocumentChanged,
             object: pdfView
         )
-        
-        // Ensure proper scaling after layout is complete
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
         }
-        
+
+        DispatchQueue.main.async {
+            if !context.coordinator.didEmitBridge {
+                context.coordinator.didEmitBridge = true
+                onBridgeReady(bridge)
+            }
+        }
+
         return pdfView
     }
-    
+
+    private func syncNoteCallbacks(_ pdfView: NoteAwarePDFView, context: Context) {
+        pdfView.onAddNoteFromSelection = { [weak pdfView] in
+            guard pdfView != nil else { return }
+            onAddNoteFromMenu()
+        }
+        pdfView.onNoteHighlightTapped = onNoteHighlightTap
+    }
+
     func updateUIView(_ uiView: PDFView, context: Context) {
+        context.coordinator.parentDocument = document
+        if let nv = uiView as? NoteAwarePDFView {
+            syncNoteCallbacks(nv, context: context)
+        }
+
         uiView.document = document
-        
-        // Only apply fit-to-width scaling on initial load
-        // Preserve user's zoom level during page navigation
+
         if context.coordinator.isInitialLoad {
             uiView.displayBox = .cropBox
             uiView.scaleFactor = uiView.scaleFactorForSizeToFit
             context.coordinator.isInitialLoad = false
         }
-        
-        // Update current page if it has changed
+
         if let targetPage = document.page(at: currentPage) {
             uiView.go(to: targetPage)
         }
-        
-        // Update search highlighting and center the selection
+
+        let notesHash = userNotes.map(\.id).sorted().joined(separator: "|")
+        if context.coordinator.lastAppliedNotesHash != notesHash {
+            context.coordinator.lastAppliedNotesHash = notesHash
+            context.coordinator.bridge?.applyUserNotes(userNotes, document: document)
+        }
+
         if !searchResults.isEmpty && currentSearchIndex < searchResults.count {
             let currentSelection = searchResults[currentSearchIndex]
-            // Set yellow color for search highlighting to match HTMLViewer
             currentSelection.color = UIColor.systemYellow
             uiView.highlightedSelections = [currentSelection]
             uiView.go(to: currentSelection)
-            
-            // Center the selection in the view after a brief delay
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.centerSelectionInView(uiView, selection: currentSelection)
             }
+        } else {
+            uiView.highlightedSelections = []
         }
     }
     
@@ -572,16 +912,24 @@ struct PDFKitView: UIViewRepresentable {
     }
     
     class Coordinator: NSObject {
-        var pdfView: PDFView?
+        weak var notePDFView: NoteAwarePDFView?
+        var bridge: PDFKitNoteBridge?
         var onPageChange: ((Int) -> Void)?
         var currentPageBinding: Binding<Int>?
         var isInitialLoad = true
-        
+        var didEmitBridge = false
+        var lastAppliedNotesHash: String?
+        var parentDocument: PDFDocument?
+
+        @objc func handleNoteTap(_ gesture: UITapGestureRecognizer) {
+            notePDFView?.handleNoteHighlightTap(gesture)
+        }
+
         @objc func pageChanged() {
-            guard let pdfView = pdfView,
+            guard let pdfView = notePDFView,
                   let document = pdfView.document,
                   let currentPage = pdfView.currentPage else { return }
-            
+
             let pageIndex = document.index(for: currentPage)
             guard currentPageBinding?.wrappedValue != pageIndex else { return }
             DispatchQueue.main.async { [weak self] in
@@ -589,36 +937,12 @@ struct PDFKitView: UIViewRepresentable {
                 self?.currentPageBinding?.wrappedValue = pageIndex
             }
         }
-        
+
         @objc func documentChanged() {
-            guard let pdfView = pdfView else { return }
-            
-            // Ensure proper scaling when document is loaded
+            guard let pdfView = notePDFView else { return }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 pdfView.scaleFactor = pdfView.scaleFactorForSizeToFit
             }
-        }
-    }
-}
-
-// MARK: - Info Row Component
-struct InfoRow: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        HStack(alignment: .top) {
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .frame(width: 100, alignment: .leading)
-            
-            Text(value)
-                .font(.subheadline)
-                .foregroundColor(.primary)
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
@@ -777,82 +1101,6 @@ struct SearchBarView: View {
     }
 }
 
-// MARK: - Document Info Sheet
-struct DocumentInfoSheet: View {
-    let title: String
-    let document: PDFDocument?
-    @Environment(\.dismiss) private var dismiss
-    
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    // Document Title Section
-                    VStack(alignment: .leading, spacing: 12) {
-                                               
-                        Text(title)
-                            .font(.body)
-                            .foregroundColor(.primary)
-                            .multilineTextAlignment(.leading)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-                    
-                    // PDF Details Section
-                    if let document = document {
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Szczegóły PDF")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            VStack(alignment: .leading, spacing: 12) {
-                                InfoRow(title: "Strony", value: "\(document.pageCount)")
-                                
-                                if let documentAttributes = document.documentAttributes,
-                                   let creationDate = documentAttributes[PDFDocumentAttribute.creationDateAttribute] as? Date {
-                                    InfoRow(title: "Stworzony", value: DateFormatter.localizedString(from: creationDate, dateStyle: .medium, timeStyle: .none))
-                                }
-                                
-                                if let documentAttributes = document.documentAttributes,
-                                   let modificationDate = documentAttributes[PDFDocumentAttribute.modificationDateAttribute] as? Date {
-                                    InfoRow(title: "Zmieniony", value: DateFormatter.localizedString(from: modificationDate, dateStyle: .medium, timeStyle: .none))
-                                }
-                                
-                                if let documentAttributes = document.documentAttributes,
-                                   let author = documentAttributes[PDFDocumentAttribute.authorAttribute] as? String {
-                                    InfoRow(title: "Autor", value: author)
-                                }
-                                
-                                if let documentAttributes = document.documentAttributes,
-                                   let subject = documentAttributes[PDFDocumentAttribute.subjectAttribute] as? String {
-                                    InfoRow(title: "Temat", value: subject)
-                                }
-                            }
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(12)
-                    }
-                }
-                .padding()
-            }
-            .navigationTitle("Dokument")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Image(systemName: "xmark")
-                    }
-                }
-            }
-        }
-    }
-}
-
 // MARK: - PDF Share Item
 struct PDFShareItem: Transferable {
     let document: PDFDocument
@@ -954,30 +1202,41 @@ extension PDFDocument: @retroactive Transferable {
 extension UnifiedPDFViewer {
     // Convenience initializer for Act objects (Polish legal documents)
     init(act: Act) {
-        self.title = act.title ?? act.displayAddress
-        self.pdfDataProvider = {
-            let apiService = APIService.shared
-            return try await apiService.getActText(eli: act.ELI, format: .pdf)
-        }
+        self.init(
+            title: act.title ?? act.displayAddress,
+            pdfDataProvider: {
+                let apiService = APIService.shared
+                return try await apiService.getActText(eli: act.ELI, format: .pdf)
+            },
+            favoriteDocumentId: nil,
+            pdfEli: act.ELI,
+            pdfCelex: nil
+        )
     }
     
     // Convenience initializer for EU documents
     init(document: EUDocument, language: EULanguage) {
-        self.title = document.title
-        self.pdfDataProvider = {
-            let apiService = API_EUService.shared
-            return try await apiService.getEUDocumentPDF(
-                cellarId: document.cellarId,
-                language: language,
-                celex: document.celex
-            )
-        }
+        self.init(
+            title: document.title,
+            pdfDataProvider: {
+                let apiService = API_EUService.shared
+                return try await apiService.getEUDocumentPDF(
+                    cellarId: document.cellarId,
+                    language: language,
+                    celex: document.celex
+                )
+            },
+            favoriteDocumentId: nil,
+            pdfEli: nil,
+            pdfCelex: document.celex
+        )
     }
     
     // Convenience initializer for ProcessStage PDF (stage-specific PDF)
     init(stage: ProcessStage, processTitle: String, term: String) {
-        self.title = "\(processTitle) - \(stage.stageName)"
-        self.pdfDataProvider = {
+        self.init(
+            title: "\(processTitle) - \(stage.stageName)",
+            pdfDataProvider: {
             // First, try to get PDF from links array if available
             if let links = stage.links,
                let pdfLink = links.first(where: { link in
@@ -1040,6 +1299,10 @@ extension UnifiedPDFViewer {
             
             let apiService = APIService_Legis.shared
             return try await apiService.getProcessPDF(number: printNumber, term: term)
-        }
+            },
+            favoriteDocumentId: nil,
+            pdfEli: nil,
+            pdfCelex: nil
+        )
     }
 }

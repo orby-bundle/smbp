@@ -558,19 +558,32 @@ struct ShareSheetManager: ViewModifier {
     }
 }
 
-// MARK: - Document tile banners (PDF / notes on MD)
+// MARK: - Document tile banners (PDF, notes on MD, notes on PDF after PDF badge)
 
 private struct DocumentTileTopBanners: View {
     let favorite: FavoriteDocument
     var isRegularWidth: Bool = false
     @ObservedObject private var notesManager = NotesManager.shared
     
-    private var documentKey: String {
+    private var markdownDocumentKey: String {
         NotesManager.documentKey(favoriteId: favorite.id)
     }
     
-    private var hasNotes: Bool {
-        favorite.resolvedFileType == "md" && !notesManager.notes(forDocumentKey: documentKey).isEmpty
+    private var pdfNotesDocumentKey: String {
+        NotesManager.pdfNotesDocumentKey(
+            title: favorite.title,
+            favoriteDocumentId: favorite.id,
+            eli: nil,
+            celex: nil
+        )
+    }
+    
+    private var hasMarkdownNotes: Bool {
+        favorite.resolvedFileType == "md" && !notesManager.notes(forDocumentKey: markdownDocumentKey).isEmpty
+    }
+    
+    private var hasPdfNotes: Bool {
+        favorite.resolvedFileType != "md" && !notesManager.notes(forDocumentKey: pdfNotesDocumentKey).isEmpty
     }
     
     private var showPDFBanner: Bool {
@@ -578,10 +591,13 @@ private struct DocumentTileTopBanners: View {
     }
     
     var body: some View {
-        Group {
+        HStack(spacing: isRegularWidth ? 8 : 6) {
             if showPDFBanner {
                 tileBanner(icon: "doc.fill", text: "PDF")
-            } else if hasNotes {
+            }
+            if showPDFBanner && hasPdfNotes {
+                tileBanner(icon: "note.text", text: "z notatkami", notesStyle: true)
+            } else if !showPDFBanner && hasMarkdownNotes {
                 tileBanner(icon: "note.text", text: "z notatkami", notesStyle: true)
             }
         }
@@ -643,7 +659,8 @@ struct DocumentRowView: View {
                                 title: favorite.title,
                                 pdfDataProvider: {
                                     try Data(contentsOf: fileURL)
-                                }
+                                },
+                                favoriteDocumentId: favorite.id
                             )
                         }
                     }
@@ -751,7 +768,8 @@ struct DocumentCardView: View {
                                 title: favorite.title,
                                 pdfDataProvider: {
                                     try Data(contentsOf: fileURL)
-                                }
+                                },
+                                favoriteDocumentId: favorite.id
                             )
                         }
                     }

@@ -411,7 +411,7 @@ struct FavoritesManagerTests {
         #expect(manager.favorites.count == initialCount)
     }
     
-    @Test("isFavorite(title:) returns true for existing favorite")
+    @Test("isFavorite(title:fileExtension:) returns true for existing PDF favorite")
     func testIsFavoriteReturnsTrue() async throws {
         FavoritesTestUtilities.clearAllFavorites()
         await FavoritesTestUtilities.waitForCleanup()
@@ -422,20 +422,20 @@ struct FavoritesManagerTests {
         manager.addFavorite(title: "Existing Document", pdfData: testPDF)
         await FavoritesTestUtilities.waitForAsyncOperations()
         
-        #expect(manager.isFavorite(title: "Existing Document") == true)
+        #expect(manager.isFavorite(title: "Existing Document", fileExtension: "pdf") == true)
     }
     
-    @Test("isFavorite(title:) returns false for non-existent favorite")
+    @Test("isFavorite(title:fileExtension:) returns false for non-existent favorite")
     func testIsFavoriteReturnsFalse() async throws {
         FavoritesTestUtilities.clearAllFavorites()
         await FavoritesTestUtilities.waitForCleanup()
         
         let manager = FavoritesManager.shared
         
-        #expect(manager.isFavorite(title: "Non-existent Document") == false)
+        #expect(manager.isFavorite(title: "Non-existent Document", fileExtension: "pdf") == false)
     }
     
-    @Test("getFavoriteID(title:) returns correct ID")
+    @Test("getFavoriteID(title:fileExtension:) returns correct ID for PDF")
     func testGetFavoriteIDReturnsCorrectID() async throws {
         FavoritesTestUtilities.clearAllFavorites()
         await FavoritesTestUtilities.waitForCleanup()
@@ -447,19 +447,19 @@ struct FavoritesManagerTests {
         await FavoritesTestUtilities.waitForAsyncOperations()
         
         let documentId = manager.favorites.first!.id
-        let retrievedId = manager.getFavoriteID(title: "Test Document")
+        let retrievedId = manager.getFavoriteID(title: "Test Document", fileExtension: "pdf")
         
         #expect(retrievedId == documentId)
     }
     
-    @Test("getFavoriteID(title:) returns nil for non-existent")
+    @Test("getFavoriteID(title:fileExtension:) returns nil for non-existent")
     func testGetFavoriteIDReturnsNil() async throws {
         FavoritesTestUtilities.clearAllFavorites()
         await FavoritesTestUtilities.waitForCleanup()
         
         let manager = FavoritesManager.shared
         
-        let retrievedId = manager.getFavoriteID(title: "Non-existent Document")
+        let retrievedId = manager.getFavoriteID(title: "Non-existent Document", fileExtension: "pdf")
         #expect(retrievedId == nil)
     }
     

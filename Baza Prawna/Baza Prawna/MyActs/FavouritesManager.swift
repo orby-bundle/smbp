@@ -207,12 +207,23 @@ final class FavoritesManager: ObservableObject {
         saveFavorites()
     }
     
-    func isFavorite(title: String) -> Bool {
-        return favorites.contains { $0.title == title }
+    /// Favorites are distinct per title **and** format (e.g. same act can have both `.md` and `.pdf`).
+    func isFavorite(title: String, fileExtension: String) -> Bool {
+        favorites.contains {
+            $0.title == title && Self.normalizedFileType($0.resolvedFileType) == Self.normalizedFileType(fileExtension)
+        }
     }
-    
-    func getFavoriteID(title: String) -> String? {
-        return favorites.first { $0.title == title }?.id
+
+    func getFavoriteID(title: String, fileExtension: String) -> String? {
+        favorites.first {
+            $0.title == title && Self.normalizedFileType($0.resolvedFileType) == Self.normalizedFileType(fileExtension)
+        }?.id
+    }
+
+    private static func normalizedFileType(_ ext: String) -> String {
+        var t = ext.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if t.hasPrefix(".") { t.removeFirst() }
+        return t.isEmpty ? "pdf" : t
     }
     
     func getFavoriteFileURL(id: String) -> URL? {

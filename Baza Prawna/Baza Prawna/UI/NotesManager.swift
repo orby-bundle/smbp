@@ -13,6 +13,8 @@ struct TextQuoteAnchor: Codable, Equatable {
     var prefix: String
     var suffix: String
     var headingId: String?
+    /// When set, `exact` / `prefix` / `suffix` refer to `PDFPage.string` on this page (0-based index).
+    var pdfPageIndex: Int? = nil
 }
 
 // MARK: - Document note
@@ -94,7 +96,7 @@ final class NotesManager: ObservableObject {
         if let favoriteDocumentId {
             return documentKey(favoriteId: favoriteDocumentId)
         }
-        if eli != nil, isFavorited, let fid = favoritesManager.getFavoriteID(title: title) {
+        if eli != nil, isFavorited, let fid = favoritesManager.getFavoriteID(title: title, fileExtension: "md") {
             return documentKey(favoriteId: fid)
         }
         if let eli {
@@ -107,6 +109,37 @@ final class NotesManager: ObservableObject {
             return documentKey(bundleResourceName: name)
         }
         return "unknown"
+    }
+
+    // MARK: - PDF document keys (separate namespace from markdown; never share `documentKey` with MD)
+
+    /// Stable storage key for PDF viewer notes only (`pdfdoc:` prefix).
+    static func pdfNotesDocumentKey(
+        title: String,
+        favoriteDocumentId: String?,
+        eli: String?,
+        celex: String?
+    ) -> String {
+        if let favoriteDocumentId, !favoriteDocumentId.isEmpty {
+            return "pdfdoc:favorite:\(favoriteDocumentId)"
+        }
+        if let eli, !eli.isEmpty {
+            return "pdfdoc:eli:\(eli)"
+        }
+        if let celex, !celex.isEmpty {
+            return "pdfdoc:celex:\(celex)"
+        }
+        return "pdfdoc:title:\(normalizedTitleForPDFNotesKey(title))"
+    }
+
+    private static func normalizedTitleForPDFNotesKey(_ title: String) -> String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return "unknown" }
+        let invalid = CharacterSet.alphanumerics.inverted
+        let parts = trimmed.lowercased().components(separatedBy: invalid).filter { !$0.isEmpty }
+        let joined = parts.joined(separator: "_")
+        let slug = joined.isEmpty ? "unknown" : String(joined.prefix(200))
+        return slug
     }
 
     // MARK: - Act markdown loading (shared by MD viewer, favorites star, note auto-save)
@@ -238,7 +271,7 @@ final class NotesManager: ObservableObject {
         markdownURL: URL?,
         favoritesManager: FavoritesManager
     ) async -> Bool {
-        if favoritesManager.isFavorite(title: title) {
+        if favoritesManager.isFavorite(title: title, fileExtension: "md") {
             migrateEliNotesToFavoriteIfNeeded(eli: eli, title: title, favoritesManager: favoritesManager)
             return true
         }
@@ -256,7 +289,64 @@ final class NotesManager: ObservableObject {
         favoritesManager: FavoritesManager
     ) {
         guard let eli else { return }
-        guard let fid = favoritesManager.getFavoriteID(title: title) else { return }
+        guard let fid = favoritesManager.getFavoriteID(title: title, fileExtension: "md") else { return }
         migrateNotes(from: Self.documentKey(eli: eli), to: Self.documentKey(favoriteId: fid))
+    }
+
+    // MARK: - PDF favorites sync (after saving a PDF note)
+
+    /// Ensures the PDF is in Moje akty when the user adds a PDF note, and migrates `pdfdoc:` keys to `pdfdoc:favorite:` when applicable.
+    func ensurePDFInFavoritesAndMigrateNotesIfNeeded(
+        title: String,
+        favoriteDocumentIdWhenOpened: String?,
+        pdfEli: String?,
+        pdfCelex: String?,
+        pdfData: Data?,
+        favoritesManager: FavoritesManager
+    ) async -> Bool {
+        if favoritesManager.isFavorite(title: title, fileExtension: "pdf") {
+            migratePdfNotesToFavoriteIfNeeded(
+                title: title,
+                favoriteDocumentIdWhenOpened: favoriteDocumentIdWhenOpened,
+                pdfEli: pdfEli,
+                pdfCelex: pdfCelex,
+                favoritesManager: favoritesManager
+            )
+            return true
+        }
+        guard let data = pdfData, !data.isEmpty else { return false }
+        favoritesManager.addFavorite(title: title, pdfData: data, fileExtension: "pdf")
+        migratePdfNotesToFavoriteIfNeeded(
+            title: title,
+            favoriteDocumentIdWhenOpened: favoriteDocumentIdWhenOpened,
+            pdfEli: pdfEli,
+            pdfCelex: pdfCelex,
+            favoritesManager: favoritesManager
+        )
+        return true
+    }
+
+    private func migratePdfNotesToFavoriteIfNeeded(
+        title: String,
+        favoriteDocumentIdWhenOpened: String?,
+        pdfEli: String?,
+        pdfCelex: String?,
+        favoritesManager: FavoritesManager
+    ) {
+        guard let fid = favoritesManager.getFavoriteID(title: title, fileExtension: "pdf") else { return }
+        let oldKey = Self.pdfNotesDocumentKey(
+            title: title,
+            favoriteDocumentId: favoriteDocumentIdWhenOpened,
+            eli: pdfEli,
+            celex: pdfCelex
+        )
+        let newKey = Self.pdfNotesDocumentKey(
+            title: title,
+            favoriteDocumentId: fid,
+            eli: nil,
+            celex: nil
+        )
+        guard oldKey != newKey else { return }
+        migrateNotes(from: oldKey, to: newKey)
     }
 }

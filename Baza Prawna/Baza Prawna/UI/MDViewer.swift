@@ -8,6 +8,7 @@
 import SwiftUI
 import UIKit
 import WebKit
+import UniformTypeIdentifiers
 
 // MARK: - Table of Contents Entry
 
@@ -597,7 +598,7 @@ private final class MarkdownWKWebView: WKWebView {
             self?.onAddNoteFromSelection?()
         }
         let inline = UIMenu(title: "", options: .displayInline, children: [addNote])
-        builder.insertSibling(inline, afterMenu: .standardEdit)
+        builder.insertSibling(inline, beforeMenu: .standardEdit)
     }
 }
 
@@ -876,8 +877,12 @@ struct MDTableOfContents: View {
             .navigationTitle("Spis treści")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Zamknij") { dismiss() }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
                 }
             }
         }
@@ -901,6 +906,8 @@ struct MDViewer: View {
     /// True until markdown is fetched and the WebView has finished loading the HTML (avoids a blank gap after network load).
     @State private var isLoading = true
     @State private var errorMessage: String?
+    /// Raw markdown for Share (same bytes as loaded from file / API / bundle).
+    @State private var markdownSourceText = ""
 
     // Search
     @State private var showingSearch = false
@@ -1098,6 +1105,16 @@ struct MDViewer: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
+                ShareLink(
+                    item: MarkdownShareItem(markdownUTF8: Data(markdownSourceText.utf8), title: title),
+                    preview: SharePreview(title)
+                ) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .disabled(markdownSourceText.isEmpty)
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
                 if !tocEntries.isEmpty {
                     Button {
                         showTOC = true
@@ -1278,16 +1295,19 @@ struct MDViewer: View {
                 await MainActor.run {
                     self.tocEntries = extractedTOC
                     self.htmlContent = html
+                    self.markdownSourceText = markdown
                 }
             } catch NotesManager.ActMarkdownError.noDocumentSource {
                 await MainActor.run {
                     self.errorMessage = "Nie znaleziono pliku."
                     self.isLoading = false
+                    self.markdownSourceText = ""
                 }
             } catch {
                 await MainActor.run {
                     self.errorMessage = "Nie udało się wczytać pliku: \(error.localizedDescription)"
                     self.isLoading = false
+                    self.markdownSourceText = ""
                 }
             }
         }
@@ -1306,13 +1326,71 @@ struct MDViewer: View {
     }
 
     private func removeFromFavorites() {
-        if let id = favoritesManager.getFavoriteID(title: title) {
+        if let id = favoritesManager.getFavoriteID(title: title, fileExtension: "md") {
             favoritesManager.removeFavorite(id: id)
             isFavorited = false
         }
     }
 
     private func checkFavoriteStatus() {
-        isFavorited = favoritesManager.isFavorite(title: title)
+        isFavorited = favoritesManager.isFavorite(title: title, fileExtension: "md")
+    }
+}
+
+// MARK: - Markdown Share Item
+
+/// Shares the loaded `.md` as a file (same pattern as `PDFShareItem` in `PDFViewer`).
+struct MarkdownShareItem: Transferable {
+    let markdownUTF8: Data
+    let title: String
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: UTType(filenameExtension: "md") ?? .plainText) { item in
+            let filename = "\(item.sanitizedTitle).md"
+            let tempDirectory = FileManager.default.temporaryDirectory
+            let tempURL = tempDirectory.appendingPathComponent(filename)
+
+            do {
+                try item.markdownUTF8.write(to: tempURL, options: [.atomic])
+            } catch {
+                throw TransferError.failedToWriteFile(error)
+            }
+
+            return SentTransferredFile(tempURL)
+        } importing: { _ in
+            throw TransferError.importNotSupported
+        }
+    }
+
+    private var sanitizedTitle: String {
+        let fallbackName = "Document"
+        let invalidCharacters = CharacterSet(charactersIn: "\\/:*?\"<>|")
+            .union(.controlCharacters)
+        let whitespaceSet = CharacterSet.whitespacesAndNewlines
+            .union(CharacterSet(charactersIn: "\u{00A0}\u{202F}"))
+
+        var sanitized = title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if sanitized.isEmpty {
+            return fallbackName
+        }
+
+        sanitized = sanitized.components(separatedBy: whitespaceSet)
+            .filter { !$0.isEmpty }
+            .joined(separator: "_")
+
+        sanitized = sanitized.components(separatedBy: invalidCharacters).joined(separator: "_")
+        sanitized = sanitized.replacingOccurrences(of: "__+", with: "_", options: .regularExpression)
+
+        sanitized = sanitized.applyingTransform(.stripCombiningMarks, reverse: false) ?? sanitized
+
+        let maxLength = 120
+        if sanitized.count > maxLength {
+            sanitized = String(sanitized.prefix(maxLength))
+        }
+
+        sanitized = sanitized.trimmingCharacters(in: CharacterSet(charactersIn: "._"))
+
+        return sanitized.isEmpty ? fallbackName : sanitized
     }
 }
