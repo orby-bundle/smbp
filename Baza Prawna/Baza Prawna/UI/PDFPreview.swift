@@ -54,7 +54,7 @@ struct PDFPreviewTile: View {
                     VStack(spacing: 8) {
                         ProgressView()
                             .progressViewStyle(CircularProgressViewStyle())
-                        Text("Ładowanie podglądu PDF...")
+                        Text("Ładowanie podglądu...")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }
@@ -64,7 +64,7 @@ struct PDFPreviewTile: View {
                         Image(systemName: "doc.richtext")
                             .font(.title3)
                             .foregroundColor(.secondary)
-                        Text("Podgląd PDF niedostępny")
+                        Text("Akt nie jest jeszcze dostępny")
                             .font(.caption2)
                             .foregroundColor(.secondary)
                     }

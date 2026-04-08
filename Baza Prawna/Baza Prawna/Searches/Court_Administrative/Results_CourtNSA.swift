@@ -104,15 +104,20 @@ struct NSAJudgmentRowView: View {
                     Spacer()
 
                     NavigationLink(destination: NSAJudgmentPDFView(judgment: judgment)) {
-                        Text("PDF")
-                            .font(horizontalSizeClass == .regular ? .body : .subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.blue)
-                            .underline()
+                        HStack(spacing: 8) {
+                            Text(".pdf")
+                                .font(.subheadline)
+                                .bold()
+                        }
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
                     }
                     .buttonStyle(PlainButtonStyle())
 
-                    Text("•")
+                    Text("|")
                         .foregroundColor(.secondary)
 
                     Button(action: {
@@ -120,18 +125,21 @@ struct NSAJudgmentRowView: View {
                             await loadHTMLContent()
                         }
                     }) {
-                        HStack(spacing: 6) {
+                        HStack(spacing: 8) {
                             if isLoadingHTML {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .blue))
                                     .scaleEffect(horizontalSizeClass == .regular ? 0.8 : 0.7)
                             }
-                            Text("Czytaj")
-                                .font(horizontalSizeClass == .regular ? .body : .subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.blue)
-                                .underline()
+                            Text("Czytaj >>")
+                                .font(.subheadline)
+                                .bold()
                         }
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+                        .background(Color(.systemGray6))
+                        .cornerRadius(8)
                     }
                     .disabled(isLoadingHTML)
                 }

@@ -193,25 +193,35 @@ struct EUDocumentRowView: View {
                             Spacer()
 
                             NavigationLink(destination: UnifiedPDFViewer(document: document, language: selectedLanguage)) {
-                                Text("PDF")
-                                    .font(horizontalSizeClass == .regular ? .body : .subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.blue)
-                                    .underline()
+                                HStack(spacing: 8) {
+                                    Text(".pdf")
+                                        .font(.subheadline)
+                                        .bold()
+                                }
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 10)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
                             }
                             .buttonStyle(PlainButtonStyle())
 
-                            Text("•")
+                            Text("|")
                                 .foregroundColor(.secondary)
 
                             Button(action: {
                                 showingSafari = true
                             }) {
-                                Text("Czytaj")
-                                    .font(horizontalSizeClass == .regular ? .body : .subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.blue)
-                                    .underline()
+                                HStack(spacing: 8) {
+                                    Text("Czytaj >>")
+                                        .font(.subheadline)
+                                        .bold()
+                                }
+                                .foregroundColor(.blue)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 10)
+                                .background(Color(.systemGray6))
+                                .cornerRadius(8)
                             }
                         }
                         .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
