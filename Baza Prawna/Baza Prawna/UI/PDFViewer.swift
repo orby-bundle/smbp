@@ -48,18 +48,55 @@ private enum PDFQuoteResolver {
     }
 
     static func anchor(from selection: PDFSelection, document: PDFDocument) -> TextQuoteAnchor? {
-        guard let raw = selection.string?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty,
-              let page = selection.pages.first else { return nil }
+        guard let page = selection.pages.first else { return nil }
         let pageIndex = document.index(for: page)
         let pageText = page.string ?? ""
-        guard let range = rangeInPageText(pageText, exact: raw, prefix: "", suffix: "") else { return nil }
-        let start = range.location
-        let end = start + range.length
-        let prefix = (pageText as NSString).substring(with: NSRange(location: max(0, start - 64), length: min(64, start)))
-        let suffixLen = min(64, pageText.count - end)
-        let suffix = suffixLen > 0 ? (pageText as NSString).substring(with: NSRange(location: end, length: suffixLen)) : ""
+        let ns = pageText as NSString
+        guard ns.length > 0 else { return nil }
+
+        var matchRange: NSRange?
+
+        let numRanges = selection.numberOfTextRanges(on: page)
+        if numRanges > 0 {
+            var lo = Int.max, hi = 0
+            for i in 0..<numRanges {
+                let r = selection.range(at: i, on: page)
+                guard r.location != NSNotFound, r.length > 0 else { continue }
+                lo = min(lo, r.location)
+                hi = max(hi, NSMaxRange(r))
+            }
+            if lo < hi, hi <= ns.length {
+                matchRange = NSRange(location: lo, length: hi - lo)
+            }
+        }
+
+        if matchRange == nil {
+            guard let raw = selection.string?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !raw.isEmpty else { return nil }
+            matchRange = rangeInPageText(pageText, exact: raw, prefix: "", suffix: "")
+        }
+
+        guard let range = matchRange else { return nil }
+        let rawExact = ns.substring(with: range)
+        let trimmedExact = rawExact.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedExact.isEmpty else { return nil }
+
+        let trimmedRange: NSRange
+        if rawExact == trimmedExact {
+            trimmedRange = range
+        } else {
+            let inner = ns.range(of: trimmedExact, options: [], range: range)
+            trimmedRange = inner.location != NSNotFound ? inner : range
+        }
+
+        let start = trimmedRange.location
+        let end = NSMaxRange(trimmedRange)
+        let prefixLen = min(64, start)
+        let prefix = prefixLen > 0 ? ns.substring(with: NSRange(location: start - prefixLen, length: prefixLen)) : ""
+        let suffixLen = min(64, ns.length - end)
+        let suffix = suffixLen > 0 ? ns.substring(with: NSRange(location: end, length: suffixLen)) : ""
         return TextQuoteAnchor(
-            exact: raw,
+            exact: trimmedExact,
             prefix: prefix,
             suffix: suffix,
             headingId: nil,
@@ -185,9 +222,25 @@ struct UnifiedPDFViewer: View {
     }
 
     private var pdfNotesDocumentKey: String {
-        NotesManager.pdfNotesDocumentKey(
+        if let favoriteDocumentId, !favoriteDocumentId.isEmpty {
+            return NotesManager.pdfNotesDocumentKey(
+                title: title,
+                favoriteDocumentId: favoriteDocumentId,
+                eli: nil,
+                celex: nil
+            )
+        }
+        if isFavorited, let fid = favoritesManager.getFavoriteID(title: title, fileExtension: "pdf") {
+            return NotesManager.pdfNotesDocumentKey(
+                title: title,
+                favoriteDocumentId: fid,
+                eli: nil,
+                celex: nil
+            )
+        }
+        return NotesManager.pdfNotesDocumentKey(
             title: title,
-            favoriteDocumentId: favoriteDocumentId,
+            favoriteDocumentId: nil,
             eli: pdfEli,
             celex: pdfCelex
         )
