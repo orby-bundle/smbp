@@ -35,69 +35,79 @@ class APIService_Legis: ObservableObject {
     
     func searchProcesses(parameters: LegislacjaSearchParameters) async throws -> ProcessesResponse {
         let term = getCurrentTerm()
-        var urlComponents = URLComponents(string: "\(baseURL)/\(term)/processes")!
-        
+
+        // Single process by print number uses path /processes/{num}, not a query parameter (see Sejm OpenAPI).
+        if let number = parameters.number?.trimmingCharacters(in: .whitespacesAndNewlines), !number.isEmpty {
+            let process = try await getProcessDetails(id: number, term: term)
+            return [process]
+        }
+
+        // Only "passed" processes: dedicated path; `passed=true` on the list URL is rejected by the edge/WAF with HTML.
+        let listPath: String
+        if parameters.passed == true {
+            listPath = "\(baseURL)/\(term)/processes/passed"
+        } else {
+            listPath = "\(baseURL)/\(term)/processes"
+        }
+
+        var urlComponents = URLComponents(string: listPath)!
         var queryItems: [URLQueryItem] = []
-        
-        // Add search parameters
+
         if let title = parameters.title, !title.isEmpty {
             queryItems.append(URLQueryItem(name: "title", value: title))
         }
-        if let number = parameters.number, !number.isEmpty {
-            queryItems.append(URLQueryItem(name: "number", value: number))
-        }
         if let dateFrom = parameters.dateFrom, !dateFrom.isEmpty {
-            queryItems.append(URLQueryItem(name: "dateFrom", value: dateFrom))
+            let modifiedSince = dateFrom.contains("T") ? dateFrom : "\(dateFrom)T00:00:00"
+            queryItems.append(URLQueryItem(name: "modifiedSince", value: modifiedSince))
         }
-        if let dateTo = parameters.dateTo, !dateTo.isEmpty {
-            queryItems.append(URLQueryItem(name: "dateTo", value: dateTo))
-        }
-        if let passed = parameters.passed {
-            queryItems.append(URLQueryItem(name: "passed", value: passed ? "true" : "false"))
-        }
+        // dateTo is not available on the list endpoint; callers filter in app if needed.
         if parameters.offset > 0 {
             queryItems.append(URLQueryItem(name: "offset", value: String(parameters.offset)))
         }
         if parameters.limit > 0 {
             queryItems.append(URLQueryItem(name: "limit", value: String(parameters.limit)))
         }
-        if let sortBy = parameters.sort_by, !sortBy.isEmpty {
-            queryItems.append(URLQueryItem(name: "sort_by", value: sortBy))
-        }
-        
+        // `sort` is documented in OpenAPI but requests that include it are often rejected with HTML ("Request Rejected").
+        // Legacy `sort_by` is not sent.
+
         urlComponents.queryItems = queryItems.isEmpty ? nil : queryItems
-        
+
         guard let url = urlComponents.url else {
             throw LegisAPIError.invalidURL
         }
-        
+
         print("🔍 Making Legislacja API request to: \(url)")
         print("📋 Query parameters: \(queryItems.map { "\($0.name)=\($0.value ?? "")" }.joined(separator: "&"))")
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("gzip, deflate", forHTTPHeaderField: "Accept-Encoding")
-        
+
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw LegisAPIError.invalidResponse
         }
-        
+
         print("Response status code: \(httpResponse.statusCode)")
-        
+
         if httpResponse.statusCode != 200 {
             let responseString = String(data: data, encoding: .utf8) ?? "No response body"
             print("❌ Error response: \(responseString)")
             throw LegisAPIError.serverError(httpResponse.statusCode, responseString)
         }
-        
-        // Print raw response for debugging
+
+        if data.first == UInt8(ascii: "<") {
+            let responseString = String(data: data.prefix(500), encoding: .utf8) ?? ""
+            print("❌ Non-JSON (HTML) response: \(responseString.prefix(200))…")
+            throw LegisAPIError.serverError(httpResponse.statusCode, responseString)
+        }
+
         if let responseString = String(data: data, encoding: .utf8) {
             print("📄 Raw response: \(responseString.prefix(500))...")
         }
-        
+
         do {
             let processes = try JSONDecoder().decode(ProcessesResponse.self, from: data)
             return processes

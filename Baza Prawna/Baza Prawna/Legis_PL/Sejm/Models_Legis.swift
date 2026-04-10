@@ -10,12 +10,16 @@ import Foundation
 // MARK: - Search Parameters
 struct LegislacjaSearchParameters {
     var title: String?
+    /// When set, resolves via `GET .../processes/{num}` (not a list query).
     var number: String?
+    /// Mapped to Sejm query `modifiedSince` (`yyyy-MM-dd` or ISO local date-time). No `dateTo` on the list API.
     var dateFrom: String?
     var dateTo: String?
+    /// When `true`, uses `GET .../processes/passed`. `false` uses the general list (do not send `passed=false`; edge rejects it).
     var passed: Bool?
     var offset: Int
     var limit: Int
+    /// Ignored for network requests — Sejm `sort` query is often blocked; list order is server-defined.
     var sort_by: String?
 }
 

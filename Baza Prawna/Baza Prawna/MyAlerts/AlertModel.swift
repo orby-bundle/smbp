@@ -377,7 +377,7 @@ struct AlertParameterBuilder {
                 dateFrom: nil,
                 dateTo: nil,
                 passed: nil,
-                offset: 0, // Not used for number-based searches
+                offset: 0,
                 limit: 1,
                 sort_by: nil
             )
@@ -386,12 +386,12 @@ struct AlertParameterBuilder {
             return LegislacjaSearchParameters(
                 title: getStringFromCriteria("title"),
                 number: nil,
-                dateFrom: nil, // API doesn't support date filtering, done in app
-                dateTo: nil, // API doesn't support date filtering, done in app
+                dateFrom: nil,
+                dateTo: nil,
                 passed: nil,
                 offset: offset,
                 limit: 100,
-                sort_by: "-documentDate"
+                sort_by: nil
             )
         }
     }

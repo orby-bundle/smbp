@@ -180,14 +180,15 @@ struct APIService_LegisTests {
         }
     }
     
-    @Test("Search processes with sorting")
+    /// List ordering is server-defined; the Sejm `sort` query is often rejected with HTML ("Request Rejected"), so the client does not send it.
+    @Test("Search processes with title filter (no sort query)")
     func testSearchProcessesWithSorting() async throws {
         await SearchTestUtilities.waitBetweenAPICalls()
         
         let service = APIService_Legis.shared
         let params = SearchTestUtilities.createLegislacjaSearchParameters(
-            limit: 10,
-            sort_by: "title"
+            title: "ustawa",
+            limit: 10
         )
         
         do {

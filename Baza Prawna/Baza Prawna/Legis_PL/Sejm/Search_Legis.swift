@@ -223,7 +223,7 @@ struct SearchLegislacjaView: View, SearchResettable {
                 passed: nil,
                 offset: offsetValue,
                 limit: limitValue,
-                sort_by: "-documentDate" // Sort by document date descending
+                sort_by: nil
             )
             
             do {
@@ -260,7 +260,7 @@ struct SearchLegislacjaView: View, SearchResettable {
             passed: nil,
             offset: currentOffset,
             limit: 10,
-            sort_by: "-documentDate"
+            sort_by: nil
         )
         
         do {

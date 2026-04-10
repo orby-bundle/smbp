@@ -462,6 +462,43 @@ struct FavoritesManagerTests {
         let retrievedId = manager.getFavoriteID(title: "Non-existent Document", fileExtension: "pdf")
         #expect(retrievedId == nil)
     }
+
+    @Test("getFavoriteID(title:fileExtension:) returns correct ID for markdown favorite")
+    func testGetFavoriteIDMarkdown() async throws {
+        FavoritesTestUtilities.clearAllFavorites()
+        await FavoritesTestUtilities.waitForCleanup()
+
+        let manager = FavoritesManager.shared
+        let mdData = "# Treść aktu\n".data(using: .utf8)!
+        manager.addFavorite(title: "Markdown Act", pdfData: mdData, fileExtension: "md")
+        await FavoritesTestUtilities.waitForAsyncOperations()
+
+        let doc = manager.favorites.first { $0.title == "Markdown Act" }
+        #expect(doc != nil)
+        let retrieved = manager.getFavoriteID(title: "Markdown Act", fileExtension: "md")
+        #expect(retrieved == doc?.id)
+    }
+
+    @Test("Same title can be stored as PDF and markdown (distinct favorites)")
+    func testPdfAndMarkdownFavoritesCoexist() async throws {
+        FavoritesTestUtilities.clearAllFavorites()
+        await FavoritesTestUtilities.waitForCleanup()
+
+        let manager = FavoritesManager.shared
+        let title = "Shared Title \(UUID().uuidString.prefix(4))"
+        let pdfData = FavoritesTestUtilities.createTestPDFData()
+        let mdData = "# md\n".data(using: .utf8)!
+
+        manager.addFavorite(title: title, pdfData: pdfData, fileExtension: "pdf")
+        manager.addFavorite(title: title, pdfData: mdData, fileExtension: "md")
+        await FavoritesTestUtilities.waitForAsyncOperations()
+
+        #expect(manager.favorites.filter { $0.title == title }.count == 2)
+        let pdfId = manager.getFavoriteID(title: title, fileExtension: "pdf")
+        let mdId = manager.getFavoriteID(title: title, fileExtension: "md")
+        #expect(pdfId != nil && mdId != nil)
+        #expect(pdfId != mdId)
+    }
     
     @Test("getFavoriteFileURL(id:) returns correct URL")
     func testGetFavoriteFileURLReturnsCorrectURL() async throws {

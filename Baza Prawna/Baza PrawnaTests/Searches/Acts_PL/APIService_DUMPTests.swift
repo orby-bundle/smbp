@@ -398,21 +398,22 @@ struct APIService_DUMPTests {
     
     // MARK: - Error Handling
     
-    @Test("Invalid ELI handling")
+    /// ELIs in the app come from search results; this checks edge behavior for an unknown path.
+    /// The Sejm ELI endpoint may respond with HTTP 200 and an HTML body (not `APIError`), so
+    /// `getActText` can succeed while returning non-PDF bytes — PDF preview then shows unavailable text.
+    @Test("Unknown ELI path may return non-PDF payload without APIError")
     func testInvalidELIHandling() async throws {
         await SearchTestUtilities.waitBetweenAPICalls()
         
         let service = APIService.shared
         let invalidELI = "invalid/eli/path"
         
-        do {
-            _ = try await service.getActText(eli: invalidELI, format: .pdf)
-            // Should throw an error
-            #expect(Bool(false), "Expected error for invalid ELI")
-        } catch {
-            // Expected to throw an error
-            #expect(SearchErrorAssertions.assertErrorType(error, is: APIError.self))
-        }
+        let data = try await service.getActText(eli: invalidELI, format: .pdf)
+        let pdfMagic = Data("%PDF-".utf8)
+        #expect(
+            !data.starts(with: pdfMagic),
+            "If the server returns 200 with HTML/error page, payload must not be treated as PDF (see PDFPreviewTile)"
+        )
     }
     
     // MARK: - Edge Cases
