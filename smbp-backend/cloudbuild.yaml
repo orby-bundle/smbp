@@ -1,22 +1,13 @@
 steps:
-# Build Kodeksy Daily Checker Job
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--target=kodeksy-job', '-t', 'gcr.io/$PROJECT_ID/kodeksy-checker', '.']
 
 # Build Alert Scheduler Job
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--no-cache', '--target=alert-job', '-t', 'gcr.io/$PROJECT_ID/alert-scheduler', '.']
+  args: ['build', '--target=alert-job', '-t', 'gcr.io/$PROJECT_ID/alert-scheduler', '.']
 
-# Build Cloud Run Service (Unified Service)
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '--target=service', '-t', 'gcr.io/$PROJECT_ID/kodeksy-unified-service', '.']
-
-# Push all images
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/kodeksy-checker']
-
+# Push the image
 - name: 'gcr.io/cloud-builders/docker'
   args: ['push', 'gcr.io/$PROJECT_ID/alert-scheduler']
 
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/$PROJECT_ID/kodeksy-unified-service']
+# Update the Cloud Run job
+- name: 'gcr.io/cloud-builders/gcloud'
+  args: ['run', 'jobs', 'update', 'alert-scheduler', '--image', 'gcr.io/$PROJECT_ID/alert-scheduler:latest', '--region', 'europe-central2']

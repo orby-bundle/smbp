@@ -1,0 +1,4 @@
+/*/
+*.sh
+env-vars.txt
+*.json

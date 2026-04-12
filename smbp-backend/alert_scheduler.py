@@ -1,7 +1,10 @@
 # smbp-backend/alert_scheduler.py
 
+## Runs with:
 ## gcloud builds submit --config cloudbuild.yaml .
-## gcloud run jobs update alert-scheduler --image gcr.io/smbp-ios/alert-scheduler:latest --region europe-central2
+## or with local container build and push:
+## ./be_deploy.sh -- faster deployment, but with running Docker
+
 
 import os
 import json
@@ -14,17 +17,13 @@ from google.cloud import firestore as gcp_firestore
 # Initialize Firebase
 if not firebase_admin._apps:
     try:
-        # Try to get credentials from environment variable first
+        # credentials are fetched from the environment variable
         cred_json = os.getenv("FIREBASE_CREDENTIALS_JSON")
-        if cred_json:
-            cred_dict = json.loads(cred_json)
-            cred = credentials.Certificate(cred_dict)
-        else:
-            # Fall back to service account file
-            cred = credentials.Certificate('firebase-service-account.json')
-        
+        cred_dict = json.loads(cred_json)
+        cred = credentials.Certificate(cred_dict)
         firebase_admin.initialize_app(cred)
         print("✅ Firebase initialized successfully")
+
     except Exception as e:
         print(f"❌ Failed to initialize Firebase: {e}")
         exit(1)
@@ -55,13 +54,14 @@ def check_alerts_and_send_notifications():
     # Group alerts by user - dictionary keyed by user_id
     notifications_to_send = {}
     
+    skipped_users = 0
     for user_doc in users:
         user_id = user_doc.id
         user_data = user_doc.to_dict()
         
         # Only process alerts for premium users
         if not user_data.get('Premium', False):
-            print(f"⏭️ Skipping user {user_id} - not premium")
+            skipped_users += 1
             continue
         
         # Skip inactive users (62+ days since last update)
@@ -104,8 +104,10 @@ def check_alerts_and_send_notifications():
     if notifications_to_send:
         send_silent_notifications(notifications_to_send)
     
+    print(f"Skipped {skipped_users} users - not premium")
     total_alerts = sum(len(notification['alert_ids']) for notification in notifications_to_send.values())
     print(f"Sent {len(notifications_to_send)} batched notifications for {total_alerts} total alerts to premium users")
+    
 
 def is_user_inactive(user_data: Dict) -> bool:
     """Check if user has been inactive for 62+ days"""
