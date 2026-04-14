@@ -544,6 +544,8 @@ struct UnifiedPDFViewer: View {
         .sheet(isPresented: $showNotesSheet) {
             MDDocumentNotesSheet(
                 notes: notesManager.notes(forDocumentKey: pdfNotesDocumentKey),
+                documentTitle: title,
+                documentSubtitle: pdfCelex != nil ? "CELEX: \(pdfCelex!)" : (pdfEli != nil ? "ELI: \(pdfEli!)" : nil),
                 onAddFromSelection: {
                     showNotesSheet = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {

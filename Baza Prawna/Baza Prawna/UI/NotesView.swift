@@ -5,6 +5,7 @@
 
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 
 // MARK: - Note editor sheet (new or edit)
 
@@ -99,6 +100,8 @@ struct NoteBodyTextEditor: UIViewRepresentable {
 
 struct MDDocumentNotesSheet: View {
     let notes: [DocumentNote]
+    let documentTitle: String
+    var documentSubtitle: String? = nil
     let onAddFromSelection: () -> Void
     let onSelectNote: (DocumentNote) -> Void
     let onEdit: (DocumentNote) -> Void
@@ -177,6 +180,16 @@ struct MDDocumentNotesSheet: View {
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
+                    if !notes.isEmpty {
+                        ShareLink(
+                            item: NotesShareItem(notes: notes, title: documentTitle, subtitle: documentSubtitle),
+                            preview: SharePreview("\(documentTitle) - Notatki")
+                        ) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         dismiss()
                     } label: {
@@ -185,5 +198,74 @@ struct MDDocumentNotesSheet: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Notes Share Item
+
+struct NotesShareItem: Transferable {
+    let notes: [DocumentNote]
+    let title: String
+    var subtitle: String? = nil
+
+    static var transferRepresentation: some TransferRepresentation {
+        FileRepresentation(contentType: .plainText) { item in
+            let filename = "\(item.sanitizedTitle)_notatki.md"
+            let tempDirectory = FileManager.default.temporaryDirectory
+            let tempURL = tempDirectory.appendingPathComponent(filename)
+
+            var markdown = "# \(item.title)\n\n"
+            if let subtitle = item.subtitle {
+                markdown += "\(subtitle)\n\n"
+            }
+            
+            for (index, note) in item.notes.enumerated() {
+                markdown += "### Notatka \(index + 1)\n\n"
+                markdown += "\(note.noteText)\n\n"
+                markdown += "> \"\(note.anchor.exact)\"\n\n"
+            }
+
+            do {
+                try markdown.write(to: tempURL, atomically: true, encoding: .utf8)
+            } catch {
+                throw TransferError.failedToWriteFile(error)
+            }
+
+            return SentTransferredFile(tempURL)
+        } importing: { _ in
+            throw TransferError.importNotSupported
+        }
+    }
+
+    private var sanitizedTitle: String {
+        let fallbackName = "Dokument"
+        let invalidCharacters = CharacterSet(charactersIn: "\\/:*?\"<>|")
+            .union(.controlCharacters)
+        let whitespaceSet = CharacterSet.whitespacesAndNewlines
+            .union(CharacterSet(charactersIn: "\u{00A0}\u{202F}"))
+
+        var sanitized = title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if sanitized.isEmpty {
+            return fallbackName
+        }
+
+        sanitized = sanitized.components(separatedBy: whitespaceSet)
+            .filter { !$0.isEmpty }
+            .joined(separator: "_")
+
+        sanitized = sanitized.components(separatedBy: invalidCharacters).joined(separator: "_")
+        sanitized = sanitized.replacingOccurrences(of: "__+", with: "_", options: .regularExpression)
+
+        sanitized = sanitized.applyingTransform(.stripCombiningMarks, reverse: false) ?? sanitized
+
+        let maxLength = 120
+        if sanitized.count > maxLength {
+            sanitized = String(sanitized.prefix(maxLength))
+        }
+
+        sanitized = sanitized.trimmingCharacters(in: CharacterSet(charactersIn: "._"))
+
+        return sanitized.isEmpty ? fallbackName : sanitized
     }
 }

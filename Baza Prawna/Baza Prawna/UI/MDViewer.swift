@@ -1273,6 +1273,8 @@ struct MDViewer: View {
         .sheet(isPresented: $showNotesSheet) {
             MDDocumentNotesSheet(
                 notes: notesManager.notes(forDocumentKey: effectiveDocumentKey),
+                documentTitle: title,
+                documentSubtitle: eli != nil ? "ELI: \(eli!)" : nil,
                 onAddFromSelection: {
                     showNotesSheet = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
