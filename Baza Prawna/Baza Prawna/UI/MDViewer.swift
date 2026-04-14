@@ -181,6 +181,37 @@ enum MarkdownRenderer {
             with: "<em>$1</em>",
             options: .regularExpression
         )
+        if let regex = try? NSRegularExpression(pattern: "(?:Dz\\.\\s*U\\.\\s*|oraz\\s*|i\\s*)?z\\s*(\\d{4})\\s*r\\.\\s*poz\\.\\s*(\\d+(?:\\s*,\\s*\\d+)*(?:\\s+(?:i|oraz)\\s+\\d+)?)", options: []) {
+            let nsString = s as NSString
+            let matches = regex.matches(in: s, options: [], range: NSRange(location: 0, length: nsString.length))
+            
+            for match in matches.reversed() {
+                let yearRange = match.range(at: 1)
+                let pozRange = match.range(at: 2)
+                
+                let year = nsString.substring(with: yearRange)
+                let pozString = nsString.substring(with: pozRange)
+                
+                let pozRegex = try? NSRegularExpression(pattern: "\\d+", options: [])
+                let pozNSString = pozString as NSString
+                let pozMatches = pozRegex?.matches(in: pozString, options: [], range: NSRange(location: 0, length: pozNSString.length)) ?? []
+                
+                var modifiedPozString = pozString
+                for pozMatch in pozMatches.reversed() {
+                    let number = pozNSString.substring(with: pozMatch.range)
+                    let link = "<a href=\"baza-prawna://act/DU/\(year)/\(number)\" class=\"act-link\">\(number)</a>"
+                    modifiedPozString = (modifiedPozString as NSString).replacingCharacters(in: pozMatch.range, with: link)
+                }
+                
+                let fullMatchRange = match.range
+                let prefixRange = NSRange(location: fullMatchRange.location, length: pozRange.location - fullMatchRange.location)
+                let prefix = nsString.substring(with: prefixRange)
+                
+                let replacement = prefix + modifiedPozString
+                s = (s as NSString).replacingCharacters(in: fullMatchRange, with: replacement)
+            }
+        }
+        
         return s
     }
 
@@ -363,6 +394,10 @@ enum MarkdownRenderer {
         background-color: #FFD700;
         color: #000;
     }
+
+    .act-link { color: #007aff; text-decoration: underline; }
+    .act-link:active { text-decoration: none; }
+    @media (prefers-color-scheme: dark) { .act-link { color: #0a84ff; } }
 
     mark.user-note-highlight {
         background-color: rgba(52, 199, 89, 0.35);
@@ -615,6 +650,8 @@ struct MarkdownWebView: UIViewRepresentable {
     var onAddNoteFromContextMenu: (() -> Void)?
     /// User tapped a green `mark.user-note-highlight` in the document.
     var onNoteHighlightTap: ((String) -> Void)?
+    /// User tapped a generated act link.
+    var onLinkTapped: ((URL) -> Void)?
 
     init(html: String,
          scrollToID: Binding<String?>,
@@ -622,7 +659,8 @@ struct MarkdownWebView: UIViewRepresentable {
          onCoordinatorReady: @escaping (Coordinator) -> Void = { _ in },
          onDocumentLoaded: (() -> Void)? = nil,
          onAddNoteFromContextMenu: (() -> Void)? = nil,
-         onNoteHighlightTap: ((String) -> Void)? = nil) {
+         onNoteHighlightTap: ((String) -> Void)? = nil,
+         onLinkTapped: ((URL) -> Void)? = nil) {
         self.html = html
         self._scrollToID = scrollToID
         self.onSearchResults = onSearchResults
@@ -630,6 +668,7 @@ struct MarkdownWebView: UIViewRepresentable {
         self.onDocumentLoaded = onDocumentLoaded
         self.onAddNoteFromContextMenu = onAddNoteFromContextMenu
         self.onNoteHighlightTap = onNoteHighlightTap
+        self.onLinkTapped = onLinkTapped
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
@@ -813,6 +852,15 @@ struct MarkdownWebView: UIViewRepresentable {
 
         // MARK: Navigation
 
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            if let url = navigationAction.request.url, url.scheme == "baza-prawna" {
+                parent.onLinkTapped?(url)
+                decisionHandler(.cancel)
+                return
+            }
+            decisionHandler(.allow)
+        }
+
         func scroll(to id: String, in webView: WKWebView) {
             webView.evaluateJavaScript(
                 "document.getElementById('\(id)')?.scrollIntoView({behavior:'smooth',block:'start'})"
@@ -889,6 +937,22 @@ struct MDTableOfContents: View {
     }
 }
 
+// MARK: - Document Navigation
+
+enum DocumentNavigation: Identifiable, Hashable {
+    case mdBundle(title: String, fileURL: URL)
+    case mdAPI(title: String, eli: String)
+    case pdf(title: String, eli: String)
+    
+    var id: String {
+        switch self {
+        case .mdBundle(let title, let url): return "bundle_\(title)_\(url.absoluteString)"
+        case .mdAPI(let title, let eli): return "api_\(title)_\(eli)"
+        case .pdf(let title, let eli): return "pdf_\(title)_\(eli)"
+        }
+    }
+}
+
 // MARK: - Main Viewer
 
 struct MDViewer: View {
@@ -915,6 +979,10 @@ struct MDViewer: View {
     @State private var searchResultsCount = 0
     @State private var currentMatchIndex = 0
     @State private var webViewCoordinator: MarkdownWebView.Coordinator?
+
+    // Navigation
+    @State private var documentNavigation: DocumentNavigation?
+    @State private var isCheckingLink = false
 
     // Favorites
     @StateObject private var favoritesManager = FavoritesManager.shared
@@ -1041,12 +1109,15 @@ struct MDViewer: View {
                                 guard let note = notesManager.note(id: noteId) else { return }
                                 newNoteText = note.noteText
                                 noteEditorSheet = .editing(note)
+                            },
+                            onLinkTapped: { url in
+                                handleLinkTap(url: url)
                             }
                         )
                         .opacity(isLoading ? 0.001 : 1)
                         .ignoresSafeArea(.container, edges: .bottom)
 
-                        if isLoading {
+                        if isLoading || isCheckingLink {
                             VStack(spacing: 20) {
                                 ProgressView()
                                     .progressViewStyle(.circular)
@@ -1239,6 +1310,20 @@ struct MDViewer: View {
             loadMarkdown()
             checkFavoriteStatus()
         }
+        .navigationDestination(item: $documentNavigation) { nav in
+            switch nav {
+            case .mdBundle(let title, let fileURL):
+                MDViewer(title: title, fileURL: fileURL)
+            case .mdAPI(let title, let eli):
+                MDViewer(title: title, eli: eli)
+            case .pdf(let title, let eli):
+                UnifiedPDFViewer(
+                    title: title,
+                    pdfDataProvider: { try await APIService.shared.getActText(eli: eli, format: .pdf) },
+                    pdfEli: eli
+                )
+            }
+        }
     }
 
     private func refreshNoteHighlights() {
@@ -1334,6 +1419,35 @@ struct MDViewer: View {
 
     private func checkFavoriteStatus() {
         isFavorited = favoritesManager.isFavorite(title: title, fileExtension: "md")
+    }
+
+    private func handleLinkTap(url: URL) {
+        guard url.host == "act", url.pathComponents.count >= 4 else { return }
+        let year = url.pathComponents[2]
+        let poz = url.pathComponents[3]
+        let actTitle = "Dz. U. \(year) r. poz. \(poz)"
+        let actEli = "DU/\(year)/\(poz)"
+        let resourceName = "DU_\(year)_\(poz)"
+        
+        // 1. Check local bundle
+        if let bundleURL = Bundle.main.url(forResource: resourceName, withExtension: "md") {
+            documentNavigation = .mdBundle(title: actTitle, fileURL: bundleURL)
+            return
+        }
+        
+        // 2. Check Firebase / API asynchronously
+        isCheckingLink = true
+        Task {
+            let exists = await FirebaseManager.shared.markdownExistsInStorage(for: actEli)
+            await MainActor.run {
+                self.isCheckingLink = false
+                if exists {
+                    self.documentNavigation = .mdAPI(title: actTitle, eli: actEli)
+                } else {
+                    self.documentNavigation = .pdf(title: actTitle, eli: actEli)
+                }
+            }
+        }
     }
 }
 
