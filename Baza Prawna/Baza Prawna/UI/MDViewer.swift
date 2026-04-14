@@ -181,34 +181,58 @@ enum MarkdownRenderer {
             with: "<em>$1</em>",
             options: .regularExpression
         )
-        if let regex = try? NSRegularExpression(pattern: "(?:Dz\\.\\s*U\\.\\s*|oraz\\s*|i\\s*)?z\\s*(\\d{4})\\s*r\\.\\s*poz\\.\\s*(\\d+(?:\\s*,\\s*\\d+)*(?:\\s+(?:i|oraz)\\s+\\d+)?)", options: []) {
+        let pattern = "(?:(?:Dz\\.\\s*U\\.\\s*|oraz\\s*|i\\s*)?z\\s*(\\d{4})\\s*r\\.\\s*poz\\.\\s*(\\d+(?:\\s*,\\s*\\d+)*(?:\\s+(?:i|oraz)\\s+\\d+)?))|(?:Dz\\.\\s*U\\.\\s*poz\\.\\s*(\\d+(?:\\s*,\\s*\\d+)*(?:\\s+(?:i|oraz)\\s+\\d+)?))|(?:\\b(\\d{4})\\s*r\\.)"
+        
+        if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
             let nsString = s as NSString
             let matches = regex.matches(in: s, options: [], range: NSRange(location: 0, length: nsString.length))
             
-            for match in matches.reversed() {
-                let yearRange = match.range(at: 1)
-                let pozRange = match.range(at: 2)
+            var lastYear: String? = nil
+            var replacements: [(NSRange, String)] = []
+            
+            for match in matches {
+                let fullYearRange = match.range(at: 1)
+                let fullPozRange = match.range(at: 2)
+                let shortPozRange = match.range(at: 3)
+                let isolatedYearRange = match.range(at: 4)
                 
-                let year = nsString.substring(with: yearRange)
-                let pozString = nsString.substring(with: pozRange)
+                var activeYear: String? = nil
+                var activePozRange: NSRange? = nil
                 
-                let pozRegex = try? NSRegularExpression(pattern: "\\d+", options: [])
-                let pozNSString = pozString as NSString
-                let pozMatches = pozRegex?.matches(in: pozString, options: [], range: NSRange(location: 0, length: pozNSString.length)) ?? []
-                
-                var modifiedPozString = pozString
-                for pozMatch in pozMatches.reversed() {
-                    let number = pozNSString.substring(with: pozMatch.range)
-                    let link = "<a href=\"baza-prawna://act/DU/\(year)/\(number)\" class=\"act-link\">\(number)</a>"
-                    modifiedPozString = (modifiedPozString as NSString).replacingCharacters(in: pozMatch.range, with: link)
+                if fullYearRange.location != NSNotFound {
+                    lastYear = nsString.substring(with: fullYearRange)
+                    activeYear = lastYear
+                    activePozRange = fullPozRange
+                } else if shortPozRange.location != NSNotFound {
+                    activeYear = lastYear
+                    activePozRange = shortPozRange
+                } else if isolatedYearRange.location != NSNotFound {
+                    lastYear = nsString.substring(with: isolatedYearRange)
                 }
                 
-                let fullMatchRange = match.range
-                let prefixRange = NSRange(location: fullMatchRange.location, length: pozRange.location - fullMatchRange.location)
-                let prefix = nsString.substring(with: prefixRange)
-                
-                let replacement = prefix + modifiedPozString
-                s = (s as NSString).replacingCharacters(in: fullMatchRange, with: replacement)
+                if let year = activeYear, let pozRange = activePozRange {
+                    let pozString = nsString.substring(with: pozRange)
+                    let pozRegex = try? NSRegularExpression(pattern: "\\d+", options: [])
+                    let pozNSString = pozString as NSString
+                    let pozMatches = pozRegex?.matches(in: pozString, options: [], range: NSRange(location: 0, length: pozNSString.length)) ?? []
+                    
+                    var modifiedPozString = pozString
+                    for pozMatch in pozMatches.reversed() {
+                        let number = pozNSString.substring(with: pozMatch.range)
+                        let link = "<a href=\"baza-prawna://act/DU/\(year)/\(number)\" class=\"act-link\">\(number)</a>"
+                        modifiedPozString = (modifiedPozString as NSString).replacingCharacters(in: pozMatch.range, with: link)
+                    }
+                    
+                    let fullMatchRange = match.range
+                    let prefixRange = NSRange(location: fullMatchRange.location, length: pozRange.location - fullMatchRange.location)
+                    let prefix = nsString.substring(with: prefixRange)
+                    
+                    replacements.append((fullMatchRange, prefix + modifiedPozString))
+                }
+            }
+            
+            for (range, replacement) in replacements.reversed() {
+                s = (s as NSString).replacingCharacters(in: range, with: replacement)
             }
         }
         
