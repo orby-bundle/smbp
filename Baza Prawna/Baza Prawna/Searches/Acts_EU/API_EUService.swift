@@ -13,13 +13,14 @@ class API_EUService: ObservableObject {
     private let sparqlEndpoint = "https://publications.europa.eu/webapi/rdf/sparql"
     private let cellarBaseURL = "https://publications.europa.eu/resource/cellar"
     
-    // Custom URLSession that handles redirects properly
+    private let redirectDelegate = HTTPSUpgradeDelegate()
+    
     private lazy var urlSession: URLSession = {
         let config = URLSessionConfiguration.default
         config.httpMaximumConnectionsPerHost = 1
         config.timeoutIntervalForRequest = 30
         config.timeoutIntervalForResource = 60
-        return URLSession(configuration: config)
+        return URLSession(configuration: config, delegate: redirectDelegate, delegateQueue: nil)
     }()
     
     private init() {}
@@ -99,29 +100,33 @@ class API_EUService: ObservableObject {
     // MARK: - Get EU Document PDF
     func getEUDocumentPDF(cellarId: String, language: EULanguage, celex: String?) async throws -> Data {
         
-        // Use EUR-Lex direct PDF URL format: https://eur-lex.europa.eu/legal-content/{LANG}/TXT/PDF/?uri=CELEX:{CELEX}
-        guard let celexNumber = celex, !celexNumber.isEmpty else {
-            throw EUAPIError.serverError(400, "CELEX number is required for PDF download")
+        // EUR-Lex (eur-lex.europa.eu) is behind AWS WAF which returns HTTP 202 with a
+        // JavaScript challenge that URLSession cannot solve. Instead, use the CELLAR API
+        // (publications.europa.eu) with content negotiation — it serves PDFs directly
+        // without bot protection.
+        guard !cellarId.isEmpty else {
+            throw EUAPIError.serverError(400, "Cellar ID is required for PDF download")
         }
         
-        let languageCode = language == .polish ? "PL" : "EN"
-        let urlString = "https://eur-lex.europa.eu/legal-content/\(languageCode)/TXT/PDF/?uri=CELEX:\(celexNumber)"
+        let cacheKey = "cellar_pdf_\(cellarId)_\(language.rawValue)"
+        let cacheManager = CacheManager.shared
         
+        if let cachedPDF = cacheManager.data(forKey: cacheKey, category: .pdf) {
+            print("📦 Using cached PDF for cellar: \(cellarId)")
+            return cachedPDF
+        }
+        
+        let urlString = "https://publications.europa.eu/resource/cellar/\(cellarId)"
         guard let url = URL(string: urlString) else {
             throw EUAPIError.invalidResponse
         }
         
-        // Check cache first
-        let cacheManager = CacheManager.shared
-        
-        if let cachedPDF = cacheManager.data(forKey: urlString, category: .pdf) {
-            print("📦 Using cached PDF for CELEX: \(celexNumber)")
-            return cachedPDF
-        }
+        let languageCode = language == .polish ? "pl" : "en"
         
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
-        request.setValue("application/pdf", forHTTPHeaderField: "Accept")
+        request.setValue("application/pdf;type=pdfa2a, application/pdf", forHTTPHeaderField: "Accept")
+        request.setValue(languageCode, forHTTPHeaderField: "Accept-Language")
         
         do {
             let (data, response) = try await urlSession.data(for: request)
@@ -130,20 +135,20 @@ class API_EUService: ObservableObject {
                 throw EUAPIError.invalidResponse
             }
             
+            let contentType = httpResponse.value(forHTTPHeaderField: "Content-Type") ?? ""
             
-            if httpResponse.statusCode == 200 {
-                // Store PDF in cache
+            if httpResponse.statusCode == 200 && contentType.contains("application/pdf") {
                 do {
-                    try cacheManager.storeData(data, forKey: urlString, category: .pdf)
-                    print("💾 Cached PDF for CELEX: \(celexNumber)")
+                    try cacheManager.storeData(data, forKey: cacheKey, category: .pdf)
+                    print("💾 Cached PDF for cellar: \(cellarId)")
                 } catch {
-                    print("⚠️ Failed to cache PDF for CELEX: \(celexNumber): \(error.localizedDescription)")
+                    print("⚠️ Failed to cache PDF for cellar: \(cellarId): \(error.localizedDescription)")
                 }
                 
                 return data
             } else {
                 let responseString = String(data: data, encoding: .utf8) ?? "No response body"
-                print("❌ PDF request failed: \(httpResponse.statusCode)")
+                print("❌ PDF request failed: \(httpResponse.statusCode), content-type: \(contentType)")
                 throw EUAPIError.serverError(httpResponse.statusCode, responseString)
             }
         } catch {
@@ -159,26 +164,15 @@ class API_EUService: ObservableObject {
         PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
         PREFIX dcterms: <http://purl.org/dc/terms/>
         
-        SELECT ?work ?title ?date ?type ?celex ?cellar_id ?summary ?author ?subject
+        SELECT ?work ?title ?date ?celex ?cellar_id
         WHERE {
           ?work rdf:type cdm:work .
+          ?work cdm:resource_legal_id_celex ?celex .
+          ?work cdm:work_date_document ?date .
           ?exp cdm:expression_belongs_to_work ?work .
           ?exp cdm:expression_title ?title .
           ?exp cdm:expression_uses_language <\(parameters.language.languageUri)> .
-          
-          # Use work ID as identifier (we only need CELEX for EUR-Lex PDFs)
           BIND(REPLACE(STR(?work), "http://publications.europa.eu/resource/cellar/", "") AS ?cellar_id)
-        """
-        
-        // Add optional fields
-        query += """
-        
-          OPTIONAL { ?work cdm:work_date_document ?date . }
-          OPTIONAL { ?work cdm:work_type ?type . }
-          OPTIONAL { ?work cdm:resource_legal_id_celex ?celex . }
-          OPTIONAL { ?work cdm:work_summary ?summary . }
-          OPTIONAL { ?work cdm:work_author ?author . }
-          OPTIONAL { ?work cdm:work_subject ?subject . }
         """
         
         // Add filters
@@ -239,117 +233,6 @@ class API_EUService: ObservableObject {
         """
         
         print("🔍 SPARQL Query: \(query)")
-        return query
-    }
-    
-    // MARK: - Alternative SPARQL Query Builder
-    private func buildAlternativeSPARQLQuery(parameters: EUSearchParameters) -> String {
-        var query = """
-        PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX dcterms: <http://purl.org/dc/terms/>
-        
-        SELECT ?work ?title ?date ?type ?celex ?cellar_id ?summary ?author ?subject
-        WHERE {
-          ?work rdf:type cdm:work .
-          ?exp cdm:expression_belongs_to_work ?work .
-          ?exp cdm:expression_title ?title .
-          
-          # Navigate WEMI hierarchy to get Item ID for PDF access
-          ?exp cdm:expression_manifested_by_manifestation ?manifestation .
-          ?manifestation cdm:manifestation_manifests_expression ?exp .
-          ?manifestation cdm:manifestation_type <http://publications.europa.eu/resource/authority/file-type/PDF> .
-          ?manifestation cdm:manifestation_has_item ?item .
-          
-          # Get the Item ID (this is what we need for PDF downloads)
-          BIND(REPLACE(STR(?item), "http://publications.europa.eu/resource/cellar/", "") AS ?cellar_id)
-        """
-        
-        // Add language filter
-        query += """
-        
-          ?exp cdm:expression_uses_language <\(parameters.language.languageUri)> .
-        """
-        
-        // Add optional fields
-        query += """
-        
-          OPTIONAL { ?work cdm:work_date_document ?date . }
-          OPTIONAL { ?work cdm:work_type ?type . }
-          OPTIONAL { ?work cdm:resource_legal_id_celex ?celex . }
-          OPTIONAL { ?work cdm:work_summary ?summary . }
-          OPTIONAL { ?work cdm:work_author ?author . }
-          OPTIONAL { ?work cdm:work_subject ?subject . }
-        """
-        
-        // Add text search filter - more flexible
-        if let queryText = parameters.query, !queryText.isEmpty {
-            query += """
-            
-            FILTER (contains(lcase(?title), lcase(\"\(queryText)\")) || 
-                    contains(lcase(?summary), lcase(\"\(queryText)\")) ||
-                    contains(lcase(?subject), lcase(\"\(queryText)\")))
-            """
-        }
-        
-        // Add ordering and pagination
-        query += """
-        
-        }
-        ORDER BY DESC(?date)
-        LIMIT \(parameters.limit) OFFSET \(parameters.offset)
-        """
-        
-        return query
-    }
-    
-    // MARK: - Fallback SPARQL Query Builder (without PDF requirement)
-    private func buildFallbackSPARQLQuery(parameters: EUSearchParameters) -> String {
-        var query = """
-        PREFIX cdm: <http://publications.europa.eu/ontology/cdm#>
-        PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-        PREFIX dcterms: <http://purl.org/dc/terms/>
-        
-        SELECT ?work ?title ?date ?type ?celex ?cellar_id ?summary ?author ?subject
-        WHERE {
-          ?work rdf:type cdm:work .
-          ?exp cdm:expression_belongs_to_work ?work .
-          ?exp cdm:expression_title ?title .
-          ?exp cdm:expression_uses_language <\(parameters.language.languageUri)> .
-          
-          # Use work ID as fallback (may not have PDF available)
-          BIND(REPLACE(STR(?work), "http://publications.europa.eu/resource/cellar/", "") AS ?cellar_id)
-        """
-        
-        // Add optional fields
-        query += """
-        
-          OPTIONAL { ?work cdm:work_date_document ?date . }
-          OPTIONAL { ?work cdm:work_type ?type . }
-          OPTIONAL { ?work cdm:resource_legal_id_celex ?celex . }
-          OPTIONAL { ?work cdm:work_summary ?summary . }
-          OPTIONAL { ?work cdm:work_author ?author . }
-          OPTIONAL { ?work cdm:work_subject ?subject . }
-        """
-        
-        // Add text search filter - more flexible
-        if let queryText = parameters.query, !queryText.isEmpty {
-            query += """
-            
-            FILTER (contains(lcase(?title), lcase(\"\(queryText)\")) || 
-                    contains(lcase(?summary), lcase(\"\(queryText)\")) ||
-                    contains(lcase(?subject), lcase(\"\(queryText)\")))
-            """
-        }
-        
-        // Add ordering and pagination
-        query += """
-        
-        }
-        ORDER BY DESC(?date)
-        LIMIT \(parameters.limit) OFFSET \(parameters.offset)
-        """
-        
         return query
     }
     
@@ -453,6 +336,35 @@ class API_EUService: ObservableObject {
             author: binding.author?.value,
             subject: binding.subject?.value
         )
+    }
+}
+
+// MARK: - HTTPS Upgrade Delegate
+/// The CELLAR API at publications.europa.eu redirects to http:// URLs,
+/// which iOS App Transport Security blocks. This delegate upgrades
+/// those redirects to https://.
+private class HTTPSUpgradeDelegate: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        guard let url = request.url,
+              var components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+              components.scheme == "http" else {
+            completionHandler(request)
+            return
+        }
+        components.scheme = "https"
+        if let secureURL = components.url {
+            var secureRequest = request
+            secureRequest.url = secureURL
+            completionHandler(secureRequest)
+        } else {
+            completionHandler(request)
+        }
     }
 }
 
