@@ -986,6 +986,8 @@ struct MDViewer: View {
     /// When opened from Moje akty, keeps the same note store as the on-disk file.
     private let favoriteDocumentId: String?
     private let bundleResourceName: String?
+    private let inMemoryMarkdown: String?
+    private let customDocumentKey: String?
 
     @State private var htmlContent = ""
     @State private var tocEntries: [MDTOCEntry] = []
@@ -1027,6 +1029,8 @@ struct MDViewer: View {
         self.eli = nil
         self.favoriteDocumentId = nil
         self.bundleResourceName = resourceName
+        self.inMemoryMarkdown = nil
+        self.customDocumentKey = nil
     }
 
     init(title: String, fileURL: URL, favoriteDocumentId: String? = nil) {
@@ -1035,6 +1039,8 @@ struct MDViewer: View {
         self.eli = nil
         self.favoriteDocumentId = favoriteDocumentId
         self.bundleResourceName = nil
+        self.inMemoryMarkdown = nil
+        self.customDocumentKey = nil
     }
 
     init(title: String, eli: String) {
@@ -1043,6 +1049,20 @@ struct MDViewer: View {
         self.eli = eli
         self.favoriteDocumentId = nil
         self.bundleResourceName = nil
+        self.inMemoryMarkdown = nil
+        self.customDocumentKey = nil
+    }
+
+    /// Opens a document from an in-memory markdown string (no file/ELI required).
+    /// `documentKey` must be stable to persist notes across openings (e.g. `nsa:<id>`).
+    init(title: String, markdown: String, documentKey: String) {
+        self.title = title
+        self.markdownURL = nil
+        self.eli = nil
+        self.favoriteDocumentId = nil
+        self.bundleResourceName = nil
+        self.inMemoryMarkdown = markdown
+        self.customDocumentKey = documentKey
     }
 
     /// Canonical key for persisted notes (ELI, favorite id, file path, or bundle name).
@@ -1053,6 +1073,7 @@ struct MDViewer: View {
             eli: eli,
             markdownURL: markdownURL,
             bundleResourceName: bundleResourceName,
+            customDocumentKey: customDocumentKey,
             isFavorited: isFavorited,
             favoritesManager: favoritesManager
         )
@@ -1379,10 +1400,13 @@ struct MDViewer: View {
             noteEditorSheet = nil
             newNoteText = ""
             Task { @MainActor in
+                let markdownOverride: Data? = inMemoryMarkdown != nil ? Data(markdownSourceText.utf8) : nil
                 let isFav = await notesManager.ensureActInFavoritesAndMigrateNotesIfNeeded(
                     title: title,
                     eli: eli,
                     markdownURL: markdownURL,
+                    sourceDocumentKey: key,
+                    markdownDataOverride: markdownOverride,
                     favoritesManager: favoritesManager
                 )
                 if isFav { isFavorited = true }
@@ -1400,7 +1424,12 @@ struct MDViewer: View {
     private func loadMarkdown() {
         Task {
             do {
-                let markdown = try await NotesManager.loadMarkdownString(markdownURL: markdownURL, eli: eli)
+                let markdown: String
+                if let inMemoryMarkdown {
+                    markdown = inMemoryMarkdown
+                } else {
+                    markdown = try await NotesManager.loadMarkdownString(markdownURL: markdownURL, eli: eli)
+                }
                 let extractedTOC = MarkdownRenderer.extractTOC(from: markdown)
                 let html = MarkdownRenderer.toHTML(markdown)
                 await MainActor.run {
@@ -1428,9 +1457,13 @@ struct MDViewer: View {
 
     private func addToFavorites() {
         Task { @MainActor in
-            guard let data = await NotesManager.loadMarkdownData(markdownURL: markdownURL, eli: eli) else {
-                return
+            let data: Data?
+            if let inMemoryMarkdown {
+                data = Data(inMemoryMarkdown.utf8)
+            } else {
+                data = await NotesManager.loadMarkdownData(markdownURL: markdownURL, eli: eli)
             }
+            guard let data else { return }
             favoritesManager.addFavorite(title: title, pdfData: data, fileExtension: "md")
             isFavorited = true
         }

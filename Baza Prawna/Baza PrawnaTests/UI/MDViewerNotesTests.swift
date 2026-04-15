@@ -35,6 +35,7 @@ struct MDViewerNotesTests {
             eli: eli,
             markdownURL: nil,
             bundleResourceName: nil,
+            customDocumentKey: nil,
             isFavorited: true,
             favoritesManager: fm
         )
@@ -51,6 +52,7 @@ struct MDViewerNotesTests {
             eli: nil,
             markdownURL: url,
             bundleResourceName: nil,
+            customDocumentKey: nil,
             isFavorited: false,
             favoritesManager: fm
         )
@@ -66,6 +68,7 @@ struct MDViewerNotesTests {
             eli: nil,
             markdownURL: nil,
             bundleResourceName: "sample",
+            customDocumentKey: nil,
             isFavorited: false,
             favoritesManager: fm
         )

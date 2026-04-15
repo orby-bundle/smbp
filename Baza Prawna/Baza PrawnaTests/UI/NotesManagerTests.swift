@@ -51,6 +51,7 @@ struct NotesManagerTests {
             eli: "DU/1/1",
             markdownURL: nil,
             bundleResourceName: nil,
+            customDocumentKey: nil,
             isFavorited: false,
             favoritesManager: fm
         )
@@ -66,10 +67,51 @@ struct NotesManagerTests {
             eli: "DU/2024/5",
             markdownURL: nil,
             bundleResourceName: nil,
+            customDocumentKey: nil,
             isFavorited: false,
             favoritesManager: fm
         )
         #expect(key == "eli:DU/2024/5")
+    }
+
+    @Test("effectiveDocumentKey uses custom key until favorited, then switches to favorite id")
+    func testEffectiveDocumentKeyCustomThenFavorite() async throws {
+        FavoritesTestUtilities.clearAllFavorites()
+        await FavoritesTestUtilities.waitForCleanup()
+
+        let fm = FavoritesManager.shared
+        let title = "Custom Key Switch \(UUID().uuidString.prefix(6))"
+        let custom = "nsa:ABC"
+
+        let key1 = NotesManager.effectiveDocumentKey(
+            title: title,
+            favoriteDocumentId: nil,
+            eli: nil,
+            markdownURL: nil,
+            bundleResourceName: nil,
+            customDocumentKey: custom,
+            isFavorited: false,
+            favoritesManager: fm
+        )
+        #expect(key1 == custom)
+
+        fm.addFavorite(title: title, pdfData: Data("# x".utf8), fileExtension: "md")
+        await FavoritesTestUtilities.waitForAsyncOperations()
+
+        let key2 = NotesManager.effectiveDocumentKey(
+            title: title,
+            favoriteDocumentId: nil,
+            eli: nil,
+            markdownURL: nil,
+            bundleResourceName: nil,
+            customDocumentKey: custom,
+            isFavorited: true,
+            favoritesManager: fm
+        )
+        #expect(key2.hasPrefix("favorite:"))
+
+        FavoritesTestUtilities.clearAllFavorites()
+        await FavoritesTestUtilities.waitForCleanup()
     }
 
     // MARK: - CRUD + migration

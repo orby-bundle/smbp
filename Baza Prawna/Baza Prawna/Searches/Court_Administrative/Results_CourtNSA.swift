@@ -75,11 +75,18 @@ struct Results_CourtNSA_View: View {
 struct NSAJudgmentRowView: View {
     let judgment: NSAJudgment
     let searchText: String
-    @State private var showingSafari = false
-    @State private var htmlContent: String?
     @State private var isLoadingHTML = false
     @State private var htmlError: String?
+    @State private var mdDestination: NSAMarkdownDestination?
     @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    
+    private struct NSAMarkdownDestination: Identifiable, Hashable {
+        let id: String
+        let judgmentId: String
+        let title: String
+        let markdown: String
+        let documentKey: String
+    }
     
     var body: some View {
         VStack(alignment: .leading, spacing: horizontalSizeClass == .regular ? 10 : 8) {
@@ -122,7 +129,7 @@ struct NSAJudgmentRowView: View {
 
                     Button(action: {
                         Task {
-                            await loadHTMLContent()
+                            await openInMDViewer()
                         }
                     }) {
                         HStack(spacing: 8) {
@@ -152,23 +159,16 @@ struct NSAJudgmentRowView: View {
         .background(Color(.systemBackground))
         .cornerRadius(horizontalSizeClass == .regular ? 12 : 8)
         .shadow(color: .black.opacity(0.08), radius: horizontalSizeClass == .regular ? 3 : 2, x: 0, y: 1)
-        .fullScreenCover(isPresented: $showingSafari) {
-            if let htmlContent = htmlContent {
-                HTMLContentView(htmlContent: htmlContent, isPresented: $showingSafari)
-            } else if let error = htmlError {
-                VStack {
-                    Text("Błąd ładowania")
-                        .font(.headline)
-                        .padding()
-                    Text(error)
-                        .foregroundColor(.red)
-                        .padding()
-                    Button("Zamknij") {
-                        showingSafari = false
-                    }
-                    .padding()
-                }
-            }
+        .navigationDestination(item: $mdDestination) { dest in
+            MDViewer(title: dest.title, markdown: dest.markdown, documentKey: dest.documentKey)
+        }
+        .alert("Błąd ładowania", isPresented: Binding(
+            get: { htmlError != nil },
+            set: { if !$0 { htmlError = nil } }
+        )) {
+            Button("OK", role: .cancel) { htmlError = nil }
+        } message: {
+            Text(htmlError ?? "")
         }
     }
     
@@ -188,17 +188,23 @@ struct NSAJudgmentRowView: View {
     }
     
     @MainActor
-    private func loadHTMLContent() async {
+    private func openInMDViewer() async {
         isLoadingHTML = true
         htmlError = nil
         
         do {
-            // Fetch the individual judgment to get stripped HTML content
-            htmlContent = try await API_NSAService.shared.getStrippedJudgmentHTML(docPath: judgment.docPath)
-            showingSafari = true
+            let stripped = try await API_NSAService.shared.getStrippedJudgmentHTML(docPath: judgment.docPath)
+            let md = NSAHTMLToMarkdown.convert(stripped)
+            mdDestination = nil
+            mdDestination = NSAMarkdownDestination(
+                id: UUID().uuidString,
+                judgmentId: judgment.id,
+                title: judgment.caseSignature,
+                markdown: md,
+                documentKey: "nsa:\(judgment.id)"
+            )
         } catch {
             htmlError = error.localizedDescription
-            showingSafari = true
         }
         
         isLoadingHTML = false

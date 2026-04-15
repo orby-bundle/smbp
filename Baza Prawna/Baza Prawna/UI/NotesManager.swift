@@ -83,6 +83,11 @@ final class NotesManager: ObservableObject {
         "favorite:\(favoriteId)"
     }
 
+    /// Custom namespace (non-act) document key, e.g. `nsa:7FFD012D26`.
+    static func documentKey(custom: String) -> String {
+        custom
+    }
+
     /// Single source of truth for which storage key notes use (favorite id, ELI, file path, or bundle).
     static func effectiveDocumentKey(
         title: String,
@@ -90,14 +95,19 @@ final class NotesManager: ObservableObject {
         eli: String?,
         markdownURL: URL?,
         bundleResourceName: String?,
+        customDocumentKey: String? = nil,
         isFavorited: Bool,
         favoritesManager: FavoritesManager
     ) -> String {
         if let favoriteDocumentId {
             return documentKey(favoriteId: favoriteDocumentId)
         }
-        if eli != nil, isFavorited, let fid = favoritesManager.getFavoriteID(title: title, fileExtension: "md") {
+        // When the document exists in favorites, prefer the favorite id so UI (e.g. “z notatkami” pill) can key off it.
+        if isFavorited, let fid = favoritesManager.getFavoriteID(title: title, fileExtension: "md") {
             return documentKey(favoriteId: fid)
+        }
+        if let customDocumentKey, !customDocumentKey.isEmpty {
+            return documentKey(custom: customDocumentKey)
         }
         if let eli {
             return documentKey(eli: eli)
@@ -269,27 +279,50 @@ final class NotesManager: ObservableObject {
         title: String,
         eli: String?,
         markdownURL: URL?,
+        sourceDocumentKey: String? = nil,
+        markdownDataOverride: Data? = nil,
         favoritesManager: FavoritesManager
     ) async -> Bool {
         if favoritesManager.isFavorite(title: title, fileExtension: "md") {
-            migrateEliNotesToFavoriteIfNeeded(eli: eli, title: title, favoritesManager: favoritesManager)
+            migrateNotesToFavoriteIfNeeded(
+                title: title,
+                eli: eli,
+                sourceDocumentKey: sourceDocumentKey,
+                favoritesManager: favoritesManager
+            )
             return true
         }
-        guard let data = await Self.loadMarkdownData(markdownURL: markdownURL, eli: eli) else {
+        let data: Data?
+        if let markdownDataOverride {
+            data = markdownDataOverride
+        } else {
+            data = await Self.loadMarkdownData(markdownURL: markdownURL, eli: eli)
+        }
+        guard let data else {
             return false
         }
         favoritesManager.addFavorite(title: title, pdfData: data, fileExtension: "md")
-        migrateEliNotesToFavoriteIfNeeded(eli: eli, title: title, favoritesManager: favoritesManager)
+        migrateNotesToFavoriteIfNeeded(
+            title: title,
+            eli: eli,
+            sourceDocumentKey: sourceDocumentKey,
+            favoritesManager: favoritesManager
+        )
         return true
     }
 
-    private func migrateEliNotesToFavoriteIfNeeded(
-        eli: String?,
+    private func migrateNotesToFavoriteIfNeeded(
         title: String,
+        eli: String?,
+        sourceDocumentKey: String?,
         favoritesManager: FavoritesManager
     ) {
-        guard let eli else { return }
         guard let fid = favoritesManager.getFavoriteID(title: title, fileExtension: "md") else { return }
+        if let sourceDocumentKey, !sourceDocumentKey.isEmpty {
+            migrateNotes(from: sourceDocumentKey, to: Self.documentKey(favoriteId: fid))
+            return
+        }
+        guard let eli else { return }
         migrateNotes(from: Self.documentKey(eli: eli), to: Self.documentKey(favoriteId: fid))
     }
 
