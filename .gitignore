@@ -3,5 +3,5 @@
 *.xcuserstate
 firebase-service-account.json
 env-vars.txt
-.terraform/*
-.terraform
+.terraform/
+.terraform*
