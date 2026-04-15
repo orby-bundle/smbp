@@ -274,25 +274,10 @@ struct Search_CourtNSA_View: View, SearchResettable {
                     }
                 }
                 .overlay(alignment: .bottomLeading) {
-                    if showScrollToTop {
-                        Button(action: {
-                            withAnimation(.easeInOut(duration: 0.5)) {
-                                proxy.scrollTo("top", anchor: .top)
-                            }
-                        }) {
-                            Image(systemName: "arrow.up")
-                                .font(.title2)
-                                .foregroundColor(.blue)
-                                .frame(width: 44, height: 44)
-                                .background(
-                                    Circle()
-                                        .fill(Color.white)
-                                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
-                                )
+                    ScrollToTopButton(showButton: $showScrollToTop) {
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            proxy.scrollTo("top", anchor: .top)
                         }
-                        .padding(.leading, 20)
-                        .padding(.bottom, 20)
-                        .transition(.scale.combined(with: .opacity))
                     }
                 }
             }

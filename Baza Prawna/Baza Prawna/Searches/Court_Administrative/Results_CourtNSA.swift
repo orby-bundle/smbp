@@ -111,16 +111,7 @@ struct NSAJudgmentRowView: View {
                     Spacer()
 
                     NavigationLink(destination: NSAJudgmentPDFView(judgment: judgment)) {
-                        HStack(spacing: 8) {
-                            Text(".pdf")
-                                .font(.subheadline)
-                                .bold()
-                        }
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
+                        ResultFormatChipLabel(title: ".pdf")
                     }
                     .buttonStyle(PlainButtonStyle())
 
@@ -132,21 +123,7 @@ struct NSAJudgmentRowView: View {
                             await openInMDViewer()
                         }
                     }) {
-                        HStack(spacing: 8) {
-                            if isLoadingHTML {
-                                ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: .blue))
-                                    .scaleEffect(horizontalSizeClass == .regular ? 0.8 : 0.7)
-                            }
-                            Text("Czytaj >>")
-                                .font(.subheadline)
-                                .bold()
-                        }
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 10)
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
+                        ResultFormatChipReadActionLabel(isLoading: isLoadingHTML, title: "Czytaj >>")
                     }
                     .disabled(isLoadingHTML)
                 }

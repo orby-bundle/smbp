@@ -181,7 +181,8 @@ enum MarkdownRenderer {
             with: "<em>$1</em>",
             options: .regularExpression
         )
-        let pattern = "(?:(?:Dz\\.\\s*U\\.\\s*|oraz\\s*|i\\s*)?z\\s*(\\d{4})\\s*r\\.\\s*poz\\.\\s*(\\d+(?:\\s*,\\s*\\d+)*(?:\\s+(?:i|oraz)\\s+\\d+)?))|(?:Dz\\.\\s*U\\.\\s*poz\\.\\s*(\\d+(?:\\s*,\\s*\\d+)*(?:\\s+(?:i|oraz)\\s+\\d+)?))|(?:\\b(\\d{4})\\s*r\\.)"
+        // . after poz is optional, works without it too
+        let pattern = "(?:(?:Dz\\.\\s*U\\.\\s*|oraz\\s*|i\\s*)?z\\s*(\\d{4})\\s*r\\.\\s*poz\\.?\\s*(\\d+(?:\\s*,\\s*\\d+)*(?:\\s+(?:i|oraz)\\s+\\d+)?))|(?:Dz\\.\\s*U\\.\\s*poz\\.?\\s*(\\d+(?:\\s*,\\s*\\d+)*(?:\\s+(?:i|oraz)\\s+\\d+)?))|(?:\\b(\\d{4})\\s*r\\.)"
         
         if let regex = try? NSRegularExpression(pattern: pattern, options: []) {
             let nsString = s as NSString
@@ -1195,7 +1196,7 @@ struct MDViewer: View {
                 } label: {
                     Image(systemName: "magnifyingglass")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(showingSearch ? .blue : .primary)
+                        .foregroundStyle(showingSearch ? Color.accentColor : Color.primary)
                 }
             }
 
@@ -1237,7 +1238,7 @@ struct MDViewer: View {
                     } label: {
                         Image(systemName: "list.bullet")
                             .font(.system(size: showMDNavigationHelpOverlay ? 18 : 16, weight: showMDNavigationHelpOverlay ? .semibold : .medium))
-                            .foregroundStyle(showMDNavigationHelpOverlay ? Color.blue : Color.primary)
+                            .foregroundStyle(showMDNavigationHelpOverlay ? Color.accentColor : Color.primary)
                     }
                     .anchorPreference(key: MDViewerHelpAnchorPreferenceKey.self, value: .bounds) { [.tableOfContentsButton: $0] }
                 }

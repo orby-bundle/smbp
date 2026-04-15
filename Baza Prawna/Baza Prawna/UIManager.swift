@@ -204,7 +204,7 @@ struct SearchButton: View {
             HStack(spacing: horizontalSizeClass == .regular ? 12 : 8) {
                 if isLoading {
                     ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .tint(.white)
                         .scaleEffect(horizontalSizeClass == .regular ? 1.0 : 0.8)
                 } else {
                     Image(systemName: "magnifyingglass")
@@ -213,18 +213,12 @@ struct SearchButton: View {
                 Text(title)
                     .font(.system(size: horizontalSizeClass == .regular ? 18 : 16, weight: .semibold))
             }
-            .foregroundColor(.white)
             .frame(maxWidth: .infinity)
             .padding(.vertical, horizontalSizeClass == .regular ? 16 : 12)
             .padding(.horizontal, horizontalSizeClass == .regular ? 20 : 16)
-            .background(Color.blue)
-            .cornerRadius(horizontalSizeClass == .regular ? 16 : 12)
-            .overlay(
-                RoundedRectangle(cornerRadius: horizontalSizeClass == .regular ? 16 : 12)
-                    .stroke(Color.white.opacity(0.3), lineWidth: horizontalSizeClass == .regular ? 2 : 1.5)
-            )
-            .shadow(color: Color.black.opacity(0.15), radius: horizontalSizeClass == .regular ? 12 : 8, x: 0, y: horizontalSizeClass == .regular ? 6 : 4)
         }
+        .buttonStyle(.borderedProminent)
+        .buttonBorderShape(.roundedRectangle(radius: horizontalSizeClass == .regular ? 16 : 12))
         .disabled(isLoading)
     }
 }
@@ -235,26 +229,116 @@ struct ScrollToTopButton: View {
     
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.accessibilityReduceTransparency) private var accessibilityReduceTransparency
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     
     var body: some View {
-        if showButton {
-            Button(action: action) {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: horizontalSizeClass == .regular ? 20 : 18, weight: .medium))
-                    .foregroundColor(.blue)
-                    .frame(width: horizontalSizeClass == .regular ? 52 : 44, height: horizontalSizeClass == .regular ? 52 : 44)
-                    .background(
-                        Circle()
-                            .fill(Color.white)
-                            .shadow(color: .black.opacity(0.2), radius: horizontalSizeClass == .regular ? 6 : 4, x: 0, y: horizontalSizeClass == .regular ? 3 : 2)
-                    )
+        Group {
+            if showButton {
+                Button(action: {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                    action()
+                }) {
+                    Image(systemName: "arrow.up")
+                        .font(.system(size: horizontalSizeClass == .regular ? 20 : 18, weight: .medium))
+                        .foregroundStyle(Color.accentColor)
+                        .frame(width: horizontalSizeClass == .regular ? 52 : 44, height: horizontalSizeClass == .regular ? 52 : 44)
+                        .background(
+                            Circle()
+                                .fill(scrollToTopCircleFill)
+                                .shadow(color: .black.opacity(0.2), radius: horizontalSizeClass == .regular ? 6 : 4, x: 0, y: horizontalSizeClass == .regular ? 3 : 2)
+                        )
+                }
+                .padding(.leading, horizontalSizeClass == .regular ? 24 : 20)
+                .padding(.bottom, horizontalSizeClass == .regular ? 24 : 20)
+                .transition(.scale.combined(with: .opacity))
             }
-            .padding(.leading, horizontalSizeClass == .regular ? 24 : 20)
-            .padding(.bottom, horizontalSizeClass == .regular ? 24 : 20)
-            .transition(.scale.combined(with: .opacity))
+        }
+        .animation(
+            accessibilityReduceMotion ? .easeInOut(duration: 0.2) : .spring(response: 0.35, dampingFraction: 0.82),
+            value: showButton
+        )
+    }
+    
+    private var scrollToTopCircleFill: some ShapeStyle {
+        if accessibilityReduceTransparency {
+            return AnyShapeStyle(Color(.tertiarySystemFill))
+        }
+        return AnyShapeStyle(.ultraThinMaterial)
+    }
+}
+
+// MARK: - Adaptive material (Reduce Transparency)
+
+extension Shape {
+    @ViewBuilder
+    func fillAdaptiveUltraThinMaterial(reduceTransparency: Bool) -> some View {
+        if reduceTransparency {
+            self.fill(Color(.secondarySystemFill))
+        } else {
+            self.fill(.ultraThinMaterial)
         }
     }
 }
+
+// MARK: - Result list format chips (.pdf / Czytaj)
+
+/// Shared styling for PDF / reader links on search result rows.
+struct ResultFormatChipLabel: View {
+    let title: String
+
+    @Environment(\.accessibilityReduceTransparency) private var accessibilityReduceTransparency
+
+    var body: some View {
+        Text(title)
+            .font(.subheadline)
+            .fontWeight(.bold)
+            .foregroundStyle(Color.accentColor)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+            .background {
+                if accessibilityReduceTransparency {
+                    Capsule().fill(Color(.secondarySystemGroupedBackground))
+                } else {
+                    Capsule().fill(.ultraThinMaterial)
+                }
+            }
+    }
+}
+
+/// PDF row action with optional loading spinner (court judgment HTML / MD flow).
+struct ResultFormatChipReadActionLabel: View {
+    let isLoading: Bool
+    let title: String
+
+    @Environment(\.accessibilityReduceTransparency) private var accessibilityReduceTransparency
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+    var body: some View {
+        HStack(spacing: 8) {
+            if isLoading {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: Color.accentColor))
+                    .scaleEffect(horizontalSizeClass == .regular ? 0.8 : 0.7)
+            }
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.bold)
+        }
+        .foregroundStyle(Color.accentColor)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .background {
+            if accessibilityReduceTransparency {
+                Capsule().fill(Color(.secondarySystemGroupedBackground))
+            } else {
+                Capsule().fill(.ultraThinMaterial)
+            }
+        }
+    }
+}
+
 // Clear SEARCH text field button
 struct ClearSearchButton: View {
     @Binding var searchText: String
@@ -665,12 +749,12 @@ private struct ClearAllSearchButton: View {
         }) {
             Image(systemName: "xmark.app")
                 .font(.system(size: horizontalSizeClass == .regular ? 20 : 18, weight: .medium))
-                .foregroundColor(.black)
-                .frame(width: horizontalSizeClass == .regular ? 100 : 80, height: horizontalSizeClass == .regular ? 48 : 40)
-                .background(Color(.systemGray5))
-                .cornerRadius(horizontalSizeClass == .regular ? 16 : 12)
+                .foregroundStyle(Color.primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .buttonStyle(PlainButtonStyle())
+        .frame(width: horizontalSizeClass == .regular ? 100 : 80, height: horizontalSizeClass == .regular ? 48 : 40)
+        .buttonStyle(.bordered)
+        .buttonBorderShape(.roundedRectangle(radius: horizontalSizeClass == .regular ? 16 : 12))
         .accessibilityIdentifier("clearSearchButton")
     }
 }

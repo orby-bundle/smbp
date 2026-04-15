@@ -169,7 +169,7 @@ struct EUDocumentRowView: View {
                                 Text("Skrót")
                                     .font(horizontalSizeClass == .regular ? .body : .subheadline)
                                     .fontWeight(.medium)
-                                    .foregroundColor(.blue)
+                                    .foregroundStyle(Color.accentColor)
                                     .underline()
                                     .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
                                     .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)
@@ -193,16 +193,7 @@ struct EUDocumentRowView: View {
                             Spacer()
 
                             NavigationLink(destination: UnifiedPDFViewer(document: document, language: selectedLanguage)) {
-                                HStack(spacing: 8) {
-                                    Text(".pdf")
-                                        .font(.subheadline)
-                                        .bold()
-                                }
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
-                                .background(Color(.systemGray6))
-                                .cornerRadius(8)
+                                ResultFormatChipLabel(title: ".pdf")
                             }
                             .buttonStyle(PlainButtonStyle())
 
@@ -212,17 +203,9 @@ struct EUDocumentRowView: View {
                             Button(action: {
                                 showingSafari = true
                             }) {
-                                HStack(spacing: 8) {
-                                    Text("Czytaj >>")
-                                        .font(.subheadline)
-                                        .bold()
-                                }
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
-                                .background(Color(.systemGray6))
-                                .cornerRadius(8)
+                                ResultFormatChipLabel(title: "Czytaj >>")
                             }
+                            .buttonStyle(.plain)
                         }
                         .padding(.horizontal, horizontalSizeClass == .regular ? 14 : 12)
                         .padding(.vertical, horizontalSizeClass == .regular ? 8 : 6)

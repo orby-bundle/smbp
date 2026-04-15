@@ -136,7 +136,7 @@ private struct RPLProjectRowView: View {
                 Button(action: { showDetailSafari = true }) {
                     Image(systemName: "arrow.right.circle")
                         .font(horizontalSizeClass == .regular ? .title : .title)
-                        .foregroundColor(.blue)
+                        .foregroundStyle(Color.accentColor)
                         .frame(alignment: .center)
                 }
                 .buttonStyle(PlainButtonStyle())
@@ -169,11 +169,11 @@ private struct RPLProjectRowView: View {
                     HStack(spacing: 6) {
                         Text(stageInfo.title)
                             .font(horizontalSizeClass == .regular ? .subheadline : .subheadline)
-                            .foregroundColor(.blue)
+                            .foregroundStyle(Color.accentColor)
                             .multilineTextAlignment(.leading)
                         Image(systemName: "chevron.right")
                             .font(horizontalSizeClass == .regular ? .caption : .caption)
-                            .foregroundColor(.blue)
+                            .foregroundStyle(Color.accentColor)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

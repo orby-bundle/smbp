@@ -203,16 +203,7 @@ struct ActRowView: View {
                         Spacer()
                         
                         NavigationLink(destination: UnifiedPDFViewer(act: act)) {
-                            HStack(spacing: 8) {
-                                Text(".pdf")
-                                    .font(.subheadline)
-                                    .bold()
-                            }
-                            .foregroundColor(.blue)
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 10)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
+                            ResultFormatChipLabel(title: ".pdf")
                         }
                         .buttonStyle(PlainButtonStyle())
                         
@@ -221,16 +212,7 @@ struct ActRowView: View {
                                 .foregroundColor(.secondary)
                             
                             NavigationLink(destination: MDViewer(title: act.title ?? act.displayAddress, eli: act.ELI)) {
-                                HStack(spacing: 8) {
-                                    Text("Czytaj >>")
-                                        .font(.subheadline)
-                                        .bold()
-                                }
-                                .foregroundColor(.blue)
-                                .padding(.horizontal, 20)
-                                .padding(.vertical, 10)
-                                .background(Color(.systemGray6))
-                                .cornerRadius(8)
+                                ResultFormatChipLabel(title: "Czytaj >>")
                             }
                             .buttonStyle(PlainButtonStyle())
                         }

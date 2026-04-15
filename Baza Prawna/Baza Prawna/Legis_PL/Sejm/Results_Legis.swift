@@ -161,10 +161,10 @@ struct ProcessRowView: View {
                             HStack(spacing: 4) {
                                 Text("więcej")
                                     .font(.subheadline)
-                                    .foregroundColor(.blue)
+                                    .foregroundStyle(Color.accentColor)
                                 Image(systemName: "chevron.down")
                                     .font(.subheadline)
-                                    .foregroundColor(.blue)
+                                    .foregroundStyle(Color.accentColor)
                             }
                         }
                         .buttonStyle(PlainButtonStyle())
@@ -209,7 +209,7 @@ struct ProcessRowView: View {
                                 NavigationLink(destination: UnifiedPDFViewer(act: act)) {
                                     Text(eli)
                                         .font(horizontalSizeClass == .regular ? .subheadline : .caption)
-                                        .foregroundColor(.blue)
+                                        .foregroundStyle(Color.accentColor)
                                         .underline()
                                 }
                                 .buttonStyle(PlainButtonStyle())
@@ -221,7 +221,7 @@ struct ProcessRowView: View {
                                 }) {
                                     Text(eli)
                                         .font(horizontalSizeClass == .regular ? .subheadline : .caption)
-                                        .foregroundColor(.blue)
+                                        .foregroundStyle(Color.accentColor)
                                         .underline()
                                 }
                                 .buttonStyle(PlainButtonStyle())
@@ -264,7 +264,7 @@ struct ProcessRowView: View {
                                     }) {
                                         Text("do komisji \(committeeCode)")
                                             .font(.subheadline)
-                                            .foregroundColor(.blue)
+                                            .foregroundStyle(Color.accentColor)
                                     }
                                     .buttonStyle(PlainButtonStyle())
                                 }
@@ -279,7 +279,7 @@ struct ProcessRowView: View {
                                 )) {
                                     Text("Pobierz PDF")
                                         .font(.subheadline)
-                                        .foregroundColor(.blue)
+                                        .foregroundStyle(Color.accentColor)
                                         .underline()
                                 }
                                 .buttonStyle(PlainButtonStyle())

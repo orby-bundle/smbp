@@ -3,6 +3,7 @@ import UIKit
 
 struct OnboardingCarouselView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceTransparency) private var accessibilityReduceTransparency
     @EnvironmentObject private var authManager: AuthenticationManager
 
     let onFinish: (() -> Void)?
@@ -163,7 +164,7 @@ struct OnboardingCarouselView: View {
             .padding(.vertical, 18)
             .background(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(.ultraThinMaterial)
+                    .fillAdaptiveUltraThinMaterial(reduceTransparency: accessibilityReduceTransparency)
             )
             .scaleEffect(successOverlayScale)
             .opacity(successOverlayOpacity)

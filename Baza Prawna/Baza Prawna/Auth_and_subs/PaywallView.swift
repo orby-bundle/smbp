@@ -59,6 +59,7 @@ struct PaywallView: View {
     @State private var disclosuresExpanded = false
     
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var accessibilityReduceTransparency
     
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -198,7 +199,7 @@ struct PaywallView: View {
                     .frame(width: isRegularWidth ? 40 : 36, height: isRegularWidth ? 40 : 36)
                     .background(
                         Circle()
-                            .fill(.ultraThinMaterial)
+                            .fillAdaptiveUltraThinMaterial(reduceTransparency: accessibilityReduceTransparency)
                             .shadow(color: .black.opacity(0.1), radius: 8, x: 0, y: 2)
                     )
             }
@@ -394,7 +395,7 @@ struct PaywallView: View {
                             .padding(.horizontal, 12)
                             .background(
                                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                    .fill(.ultraThinMaterial)
+                                    .fillAdaptiveUltraThinMaterial(reduceTransparency: accessibilityReduceTransparency)
                             )
                             .transition(.opacity)
                     } else if subscriptionManager.isLoading {
@@ -799,6 +800,7 @@ struct BenefitRow: View {
     let description: String
     let isRegularWidth: Bool
     @State private var isHovered = false
+    @Environment(\.accessibilityReduceTransparency) private var accessibilityReduceTransparency
     
     var body: some View {
         HStack(alignment: .center, spacing: isRegularWidth ? 16 : 14) {
@@ -865,7 +867,7 @@ struct BenefitRow: View {
         .padding(isRegularWidth ? 20 : 16)
         .background(
             RoundedRectangle(cornerRadius: isRegularWidth ? 18 : 16)
-                .fill(.ultraThinMaterial)
+                .fillAdaptiveUltraThinMaterial(reduceTransparency: accessibilityReduceTransparency)
                 .shadow(color: .black.opacity(isHovered ? 0.08 : 0.04), radius: isHovered ? 12 : 6, x: 0, y: 4)
         )
         .scaleEffect(isHovered ? 1.02 : 1.0)
@@ -895,6 +897,7 @@ struct FeatureTile: View {
     let isRegularWidth: Bool
 
     @State private var isPressed = false
+    @Environment(\.accessibilityReduceTransparency) private var accessibilityReduceTransparency
 
     var body: some View {
         VStack(alignment: .center, spacing: isRegularWidth ? 12 : 10) {
@@ -931,7 +934,7 @@ struct FeatureTile: View {
         .frame(maxWidth: .infinity, minHeight: isRegularWidth ? 112 : 104, alignment: .center)
         .background(
             RoundedRectangle(cornerRadius: isRegularWidth ? 18 : 16, style: .continuous)
-                .fill(.ultraThinMaterial)
+                .fillAdaptiveUltraThinMaterial(reduceTransparency: accessibilityReduceTransparency)
                 .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 4)
         )
         .scaleEffect(isPressed ? 0.98 : 1.0)
