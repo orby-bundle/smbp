@@ -185,7 +185,8 @@ struct API_EUServiceTests {
                 } catch {
                     // HTML might not be available for all documents
                     if case EUAPIError.serverError(let code, _) = error {
-                        #expect(code == 404 || code >= 400) // Expected for some documents
+                        // eur-lex.europa.eu is behind AWS WAF and may return 202 (JS challenge)
+                        #expect(code == 404 || code == 202 || code >= 400) // Expected for some documents
                     } else {
                         throw error
                     }
