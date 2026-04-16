@@ -22,6 +22,12 @@ struct SearchHelpAnchorPreferenceKey: PreferenceKey {
 
 enum MDViewerHelpTarget: Hashable {
     case tableOfContentsButton
+    case notesButton
+}
+
+enum MDViewerNavigationHelpStep: CaseIterable, Hashable {
+    case tableOfContents
+    case notes
 }
 
 struct MDViewerHelpAnchorPreferenceKey: PreferenceKey {
@@ -37,7 +43,10 @@ struct MDViewerHelpAnchorPreferenceKey: PreferenceKey {
 struct MDViewerNavigationHelpOverlay: View {
     let anchors: [MDViewerHelpTarget: Anchor<CGRect>]
     let isVisible: Bool
+    @Binding var step: MDViewerNavigationHelpStep
     let onComplete: () -> Void
+    
+    @Environment(\.accessibilityReduceTransparency) private var accessibilityReduceTransparency
 
     var body: some View {
         if isVisible {
@@ -69,7 +78,7 @@ struct MDViewerNavigationHelpOverlay: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        onComplete()
+                        advanceStep()
                     }
                 } else {
                     ZStack {
@@ -79,7 +88,7 @@ struct MDViewerNavigationHelpOverlay: View {
                     }
                     .contentShape(Rectangle())
                     .onTapGesture {
-                        onComplete()
+                        advanceStep()
                     }
                 }
             }
@@ -88,29 +97,43 @@ struct MDViewerNavigationHelpOverlay: View {
     }
 
     private func highlightRects(in proxy: GeometryProxy) -> ([CGRect], CGRect)? {
-        guard let anchor = anchors[.tableOfContentsButton] else { return nil }
-        let rect = proxy[anchor].insetBy(dx: -6, dy: -6)
-        return ([rect], rect)
+        let targets = highlightTargets(for: step)
+        let rects = targets.compactMap { target in
+            anchors[target].map { proxy[$0].insetBy(dx: -6, dy: -6) }
+        }
+        guard !rects.isEmpty else { return nil }
+        let unionRect = rects.dropFirst().reduce(rects[0]) { $0.union($1) }
+        return (rects, unionRect)
+    }
+    
+    private func highlightTargets(for step: MDViewerNavigationHelpStep) -> [MDViewerHelpTarget] {
+        switch step {
+        case .tableOfContents:
+            return [.tableOfContentsButton]
+        case .notes:
+            return [.notesButton]
+        }
     }
 
     @ViewBuilder
     private func coachMarkCentered(in proxy: GeometryProxy) -> some View {
+        let bubbleMaxWidth = max(220, min(proxy.size.width - 96, 360))
         VStack {
             Spacer()
-            Text("Nawiguj w dokumencie")
-                .font(.title3)
+            Text(stepMessage)
+                .font(.title3.weight(.semibold))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 24)
-                .frame(maxWidth: proxy.size.width - 48)
+                .frame(maxWidth: bubbleMaxWidth)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(MDNavigationHelpBubbleBackground())
+                        .fillAdaptiveUltraThinMaterial(reduceTransparency: accessibilityReduceTransparency)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                        .stroke(Color.accentColor.opacity(0.35), lineWidth: 1)
                 )
             Spacer()
         }
@@ -125,40 +148,47 @@ struct MDViewerNavigationHelpOverlay: View {
         let minY: CGFloat = 80
         let maxY: CGFloat = proxy.size.height - 80
         let bubbleY = min(max(rawBubbleY, minY), maxY)
+        let bubbleMaxWidth = max(220, min(proxy.size.width - 96, 360))
 
         VStack(spacing: 8) {
-            Text("Nawiguj w dokumencie")
-                .font(.title3)
+            Text(stepMessage)
+                .font(.title3.weight(.semibold))
                 .foregroundColor(.white)
                 .multilineTextAlignment(.center)
                 .lineLimit(nil)
                 .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 24)
-                .frame(maxWidth: proxy.size.width - 48)
+                .frame(maxWidth: bubbleMaxWidth)
                 .background(
                     RoundedRectangle(cornerRadius: 12)
-                        .fill(MDNavigationHelpBubbleBackground())
+                        .fillAdaptiveUltraThinMaterial(reduceTransparency: accessibilityReduceTransparency)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                        .stroke(Color.accentColor.opacity(0.35), lineWidth: 1)
                 )
         }
         .position(x: proxy.size.width / 2, y: bubbleY)
         .transition(.opacity)
     }
-}
-
-private struct MDNavigationHelpBubbleBackground: ShapeStyle {
-    func _apply(to shape: inout _ShapeStyle_Shape) {
-        LinearGradient(
-            colors: [Color.blue, Color.cyan],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-        )
-        .opacity(0.95)
-        ._apply(to: &shape)
+    
+    private var stepMessage: String {
+        switch step {
+        case .tableOfContents:
+            return "Nawiguj w dokumencie"
+        case .notes:
+            return "Zarządzaj swoimi notatkami"
+        }
+    }
+    
+    private func advanceStep() {
+        switch step {
+        case .tableOfContents:
+            step = .notes
+        case .notes:
+            onComplete()
+        }
     }
 }
 

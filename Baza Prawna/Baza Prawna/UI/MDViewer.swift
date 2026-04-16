@@ -993,6 +993,7 @@ struct MDViewer: View {
     @State private var htmlContent = ""
     @State private var tocEntries: [MDTOCEntry] = []
     @State private var showTOC = false
+    @State private var mdNavigationHelpStep: MDViewerNavigationHelpStep = .tableOfContents
     @State private var scrollToID: String?
     /// True until markdown is fetched and the WebView has finished loading the HTML (avoids a blank gap after network load).
     @State private var isLoading = true
@@ -1083,6 +1084,10 @@ struct MDViewer: View {
     /// Spotlight + coach mark for the table-of-contents control (only when the document has headings).
     private var showMDNavigationHelpOverlay: Bool {
         appStateManager.shouldShowMDNavigationHelp && !tocEntries.isEmpty
+    }
+    
+    private var isPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
     }
 
     var body: some View {
@@ -1200,7 +1205,7 @@ struct MDViewer: View {
                 }
             }
 
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
                     if isFavorited {
                         showingRemoveConfirmation = true
@@ -1211,36 +1216,59 @@ struct MDViewer: View {
                     Image(systemName: isFavorited ? "star.fill" : "star")
                         .foregroundColor(isFavorited ? .yellow : .primary)
                 }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    showNotesSheet = true
-                } label: {
-                    Image(systemName: "note.text")
-                }
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                ShareLink(
-                    item: MarkdownShareItem(markdownUTF8: Data(markdownSourceText.utf8), title: title),
-                    preview: SharePreview(title)
-                ) {
-                    Image(systemName: "square.and.arrow.up")
-                }
-                .disabled(markdownSourceText.isEmpty)
-            }
-
-            ToolbarItem(placement: .topBarTrailing) {
-                if !tocEntries.isEmpty {
-                    Button {
-                        showTOC = true
+                
+                if isPad && !appStateManager.shouldShowMDNavigationHelp {
+                    Menu {
+                        Button {
+                            showNotesSheet = true
+                        } label: {
+                            Label("Notatki", systemImage: "note.text")
+                        }
+                        
+                        ShareLink(
+                            item: MarkdownShareItem(markdownUTF8: Data(markdownSourceText.utf8), title: title),
+                            preview: SharePreview(title)
+                        ) {
+                            Label("Udostępnij", systemImage: "square.and.arrow.up")
+                        }
+                        .disabled(markdownSourceText.isEmpty)
+                        
+                        if !tocEntries.isEmpty {
+                            Button {
+                                showTOC = true
+                            } label: {
+                                Label("Spis treści", systemImage: "list.bullet")
+                            }
+                        }
                     } label: {
-                        Image(systemName: "list.bullet")
-                            .font(.system(size: showMDNavigationHelpOverlay ? 18 : 16, weight: showMDNavigationHelpOverlay ? .semibold : .medium))
-                            .foregroundStyle(showMDNavigationHelpOverlay ? Color.accentColor : Color.primary)
+                        Image(systemName: "ellipsis.circle")
                     }
-                    .anchorPreference(key: MDViewerHelpAnchorPreferenceKey.self, value: .bounds) { [.tableOfContentsButton: $0] }
+                } else {
+                    Button {
+                        showNotesSheet = true
+                    } label: {
+                        Image(systemName: "note.text")
+                    }
+                    .anchorPreference(key: MDViewerHelpAnchorPreferenceKey.self, value: .bounds) { [.notesButton: $0] }
+                    
+                    ShareLink(
+                        item: MarkdownShareItem(markdownUTF8: Data(markdownSourceText.utf8), title: title),
+                        preview: SharePreview(title)
+                    ) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .disabled(markdownSourceText.isEmpty)
+                    
+                    if !tocEntries.isEmpty {
+                        Button {
+                            showTOC = true
+                        } label: {
+                            Image(systemName: "list.bullet")
+                                .font(.system(size: showMDNavigationHelpOverlay ? 18 : 16, weight: showMDNavigationHelpOverlay ? .semibold : .medium))
+                                .foregroundStyle(showMDNavigationHelpOverlay ? Color.accentColor : Color.primary)
+                        }
+                        .anchorPreference(key: MDViewerHelpAnchorPreferenceKey.self, value: .bounds) { [.tableOfContentsButton: $0] }
+                    }
                 }
             }
         }
@@ -1344,6 +1372,7 @@ struct MDViewer: View {
             MDViewerNavigationHelpOverlay(
                 anchors: anchors,
                 isVisible: showMDNavigationHelpOverlay,
+                step: $mdNavigationHelpStep,
                 onComplete: {
                     appStateManager.markMDNavigationHelpSeen()
                 }
@@ -1357,6 +1386,9 @@ struct MDViewer: View {
         .onAppear {
             loadMarkdown()
             checkFavoriteStatus()
+            if appStateManager.shouldShowMDNavigationHelp {
+                mdNavigationHelpStep = .tableOfContents
+            }
         }
         .navigationDestination(item: $documentNavigation) { nav in
             switch nav {
