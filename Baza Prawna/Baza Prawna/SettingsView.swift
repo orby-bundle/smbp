@@ -18,6 +18,8 @@ struct SettingsView: View {
     @State private var showingPrivacySheet = false
     @ObservedObject private var appStateManager = AppStateManager.shared
     @Environment(\.openURL) private var openURL
+    @AppStorage("hapticsEnabled") private var hapticsEnabled: Bool = true
+    @AppStorage("appAppearance") private var appAppearanceRawValue: String = AppAppearance.system.rawValue
     
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -47,6 +49,10 @@ struct SettingsView: View {
                         }
                         
                         GridRow {
+                            preferencesSection
+                        }
+                        
+                        GridRow {
                             legalSection
                         }
                         
@@ -66,6 +72,9 @@ struct SettingsView: View {
                         
                         // Subscription Section
                         subscriptionSection
+                        
+                        // Preferences Section
+                        preferencesSection
                         
                         // Legal Section
                         legalSection
@@ -398,6 +407,66 @@ struct SettingsView: View {
     }
     
     // MARK: - Private Methods
+}
+
+// MARK: - Preferences Section
+private extension SettingsView {
+    var preferencesSection: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Text("Preferencje")
+                    .font(isRegularWidth ? .title : .title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                Spacer()
+            }
+            .padding(.bottom, isRegularWidth ? 20 : 16)
+            
+            VStack(spacing: 0) {
+                // Appearance (Dark mode)
+                HStack {
+                    Image(systemName: "moon.circle")
+                        .font(.title3)
+                        .foregroundColor(.primary)
+                    Text("Wygląd")
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Picker("", selection: $appAppearanceRawValue) {
+                        ForEach(AppAppearance.allCases) { option in
+                            Text(option.title).tag(option.rawValue)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                }
+                .padding(.horizontal, isRegularWidth ? 24 : 20)
+                .padding(.vertical, isRegularWidth ? 16 : 12)
+
+                Divider()
+                    .padding(.horizontal, isRegularWidth ? 24 : 20)
+
+                Toggle(isOn: $hapticsEnabled) {
+                    HStack {
+                        Image(systemName: "hand.tap")
+                            .font(.title3)
+                            .foregroundColor(.primary)
+                        Text("Haptyka")
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                        Spacer()
+                    }
+                }
+                .padding(.horizontal, isRegularWidth ? 24 : 20)
+                .padding(.vertical, isRegularWidth ? 16 : 12)
+                .toggleStyle(SwitchToggleStyle(tint: .accentColor))
+            }
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+            )
+        }
+    }
 }
 
 // MARK: - Legal Section

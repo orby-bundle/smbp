@@ -146,7 +146,7 @@ struct SearchView: View, SearchResettable {
                                 .frame(height: 45)
                                 .anchorPreference(key: SearchHelpAnchorPreferenceKey.self, value: .bounds) { [.publisherSegmented: $0] }
                                 .onChange(of: state.selectedPublisher) { _, newValue in
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    Haptics.impact(.light)
                                     if newValue == .legis {
                                         showingLegislacjaView = true
                                     }
@@ -521,8 +521,7 @@ struct SearchView: View, SearchResettable {
         AlertManager.shared.saveAlert(alert)
         
         // Show success feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
+        Haptics.impact(.medium)
     }
     
     private func generateAlertTitle() -> String {
@@ -842,7 +841,7 @@ private struct LegislacjaInlineView: View {
             }
             .pickerStyle(SegmentedPickerStyle())
             .onChange(of: selection) { _, _ in
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                Haptics.impact(.light)
             }
             .padding(horizontalSizeClass == .regular ? 8 : 4)
 

@@ -32,8 +32,7 @@ struct AlertButton: View {
     
     var body: some View {
         Button(action: {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-            impactFeedback.impactOccurred()
+            Haptics.impact(.medium)
             checkNotificationPermission()
         }) {
             ZStack {
@@ -221,8 +220,7 @@ struct AlertButton: View {
         }
         
         // Add haptic feedback for success
-        let successFeedback = UINotificationFeedbackGenerator()
-        successFeedback.notificationOccurred(.success)
+        Haptics.notification(.success)
         
         // Reset animation after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {

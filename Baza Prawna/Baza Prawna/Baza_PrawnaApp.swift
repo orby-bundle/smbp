@@ -19,6 +19,7 @@ struct Baza_PrawnaApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var authManager = AuthenticationManager.shared
     @StateObject private var subscriptionManager = SubscriptionManager.shared
+    @AppStorage("appAppearance") private var appAppearanceRawValue: String = AppAppearance.system.rawValue
 
     init() {
         #if DEBUG
@@ -40,9 +41,11 @@ struct Baza_PrawnaApp: App {
 
     var body: some Scene {
         WindowGroup {
+            let appearance = AppAppearance(rawValue: appAppearanceRawValue) ?? .system
             MainTabView()
                 .environmentObject(authManager)
                 .environmentObject(subscriptionManager)
+                .preferredColorScheme(appearance.colorScheme)
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                     // Check subscription status when app returns from background
                     Task {

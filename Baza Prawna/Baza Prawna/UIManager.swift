@@ -266,8 +266,7 @@ struct ScrollToTopButton: View {
         Group {
             if showButton {
                 Button(action: {
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                    impactFeedback.impactOccurred()
+                    Haptics.impact(.light)
                     action()
                 }) {
                     Image(systemName: "arrow.up")
@@ -773,8 +772,7 @@ private struct ClearAllSearchButton: View {
     
     var body: some View {
         Button(action: {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.impactOccurred()
+            Haptics.impact(.light)
             action()
         }) {
             Image(systemName: "xmark.app")

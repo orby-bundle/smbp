@@ -197,8 +197,7 @@ struct OnboardingCarouselView: View {
     private func playSuccessAndFinish() {
         guard !didFinish else { return }
 
-        let successFeedback = UINotificationFeedbackGenerator()
-        successFeedback.notificationOccurred(.success)
+        Haptics.notification(.success)
 
         showSuccessOverlay = true
 

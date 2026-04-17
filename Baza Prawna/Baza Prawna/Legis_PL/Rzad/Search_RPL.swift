@@ -364,8 +364,7 @@ struct SearchRPLView: View, SearchResettable {
 
         AlertManager.shared.saveAlert(alert)
 
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
+        Haptics.impact(.medium)
     }
 
     private func generateAlertTitle() -> String {

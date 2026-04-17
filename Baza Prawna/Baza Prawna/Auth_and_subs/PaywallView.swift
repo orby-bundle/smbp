@@ -425,8 +425,7 @@ struct PaywallView: View {
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                                     selectedProduct = product
                                 }
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.impactOccurred()
+                                Haptics.impact(.light)
                                 ctaPulseTick &+= 1
                             }
                         )

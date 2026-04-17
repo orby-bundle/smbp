@@ -99,7 +99,7 @@ struct SearchEU_View: View, SearchResettable {
                                     }
                                     .pickerStyle(SegmentedPickerStyle())
                                     .onChange(of: state.selectedLanguage) { _, _ in
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        Haptics.impact(.light)
                                     }
                                     .frame(maxWidth: horizontalSizeClass == .regular ? 300 : 200)
                                 }
@@ -361,8 +361,7 @@ struct SearchEU_View: View, SearchResettable {
         AlertManager.shared.saveAlert(alert)
         
         // Show success feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
+        Haptics.impact(.medium)
     }
     
     private func generateAlertTitle() -> String {

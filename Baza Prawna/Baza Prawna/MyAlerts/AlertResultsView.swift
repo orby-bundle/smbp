@@ -650,8 +650,7 @@ struct AlertResultsView: View {
                     
                     // Show feedback for new results
                     if newResultsCountFromSave > 0 {
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                        impactFeedback.impactOccurred()
+                        Haptics.impact(.light)
                     }
                 }
             }
@@ -692,8 +691,7 @@ struct AlertResultsView: View {
                     
                     // Show feedback for new results
                     if newResultsCountFromSave > 0 {
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                        impactFeedback.impactOccurred()
+                        Haptics.impact(.light)
                     }
                 }
             }

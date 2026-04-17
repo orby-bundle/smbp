@@ -178,9 +178,7 @@ final class FavoritesManager: ObservableObject {
     
     private static func playFavoriteAddedHaptic() {
         DispatchQueue.main.async {
-            let generator = UIImpactFeedbackGenerator(style: .medium)
-            generator.prepare()
-            generator.impactOccurred()
+            Haptics.impact(.medium)
         }
     }
     

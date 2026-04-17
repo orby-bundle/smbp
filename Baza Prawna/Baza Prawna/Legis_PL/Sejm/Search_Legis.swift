@@ -295,8 +295,7 @@ struct SearchLegislacjaView: View, SearchResettable {
         AlertManager.shared.saveAlert(alert)
         
         // Show success feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-        impactFeedback.impactOccurred()
+        Haptics.impact(.medium)
     }
     
     private func generateAlertTitle() -> String {

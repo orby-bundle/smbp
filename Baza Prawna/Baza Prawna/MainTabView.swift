@@ -65,7 +65,7 @@ struct MainTabView: View {
         .modifier(AdaptiveTabViewStyle())
         .accentColor(.blue)
         .onChange(of: selectedTab) { oldValue, newValue in
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            Haptics.impact(.light)
             // Track "Moje" tab visits for review requests
             if newValue == 3 {
                 ReviewManager.shared.recordMojeTabVisit()
@@ -146,7 +146,7 @@ private enum MyTabSelection: String, CaseIterable, Identifiable {
 }
 
 private struct CourtCombinedView: View {
-    @State private var selection: CourtTabSelection = .orzeczenia
+    @State private var selection: CourtTabSelection = .bazaNSA
     
     init() {
         // Customize segmented control appearance
@@ -167,7 +167,7 @@ private struct CourtCombinedView: View {
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .onChange(of: selection) { _, _ in
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                 }
             }
             .padding()
@@ -222,7 +222,7 @@ private struct MyCombinedView: View {
                 }
                 .pickerStyle(SegmentedPickerStyle())
                 .onChange(of: selection) { _, _ in
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    Haptics.impact(.light)
                 }
             }
             .padding()
