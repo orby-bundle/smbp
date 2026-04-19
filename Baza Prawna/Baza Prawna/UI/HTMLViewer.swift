@@ -88,6 +88,7 @@ struct HTMLContentView: View {
     @State private var searchText = ""
     @State private var searchResultsCount = 0
     @State private var currentMatchIndex = 0
+    @FocusState private var isSearchFieldFocused: Bool
     @State private var webViewCoordinator: WebView.Coordinator?
     
     init(htmlContent: String, isPresented: Binding<Bool>, title: String = "Treść dokumentu", closeButtonText: String = "Zamknij", initialSearchText: String = "") {
@@ -107,6 +108,7 @@ struct HTMLContentView: View {
                         searchText: $searchText,
                         searchResultsCount: $searchResultsCount,
                         currentMatchIndex: $currentMatchIndex,
+                        isSearchFieldFocused: $isSearchFieldFocused,
                         onSearch: { text in
                             webViewCoordinator?.performSearch(text)
                         },
@@ -145,7 +147,11 @@ struct HTMLContentView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
                         showingSearch.toggle()
-                        if !showingSearch {
+                        if showingSearch {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                isSearchFieldFocused = true
+                            }
+                        } else {
                             searchText = ""
                         }
                     }) {
@@ -182,6 +188,9 @@ struct HTMLContentView: View {
             if !initialSearchText.isEmpty {
                 searchText = initialSearchText
                 showingSearch = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    isSearchFieldFocused = true
+                }
                 // Perform search after a short delay to ensure WebView is ready
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     webViewCoordinator?.performSearch(initialSearchText)
@@ -693,6 +702,7 @@ struct HTMLSearchBarView: View {
     @Binding var searchText: String
     @Binding var searchResultsCount: Int
     @Binding var currentMatchIndex: Int
+    @FocusState.Binding var isSearchFieldFocused: Bool
     let onSearch: (String) -> Void
     let onPrevious: () -> Void
     let onNext: () -> Void
@@ -706,6 +716,7 @@ struct HTMLSearchBarView: View {
                 TextField("Szukaj w tekście...", text: $searchText)
                     .textFieldStyle(PlainTextFieldStyle())
                     .font(.system(size: 17, weight: .regular)) /* Apple's body text size */
+                    .focused($isSearchFieldFocused)
                     .onSubmit {
                         onSearch(searchText)
                     }

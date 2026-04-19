@@ -1003,6 +1003,7 @@ struct MDViewer: View {
 
     // Search
     @State private var showingSearch = false
+    @FocusState private var isSearchFieldFocused: Bool
     @State private var searchText = ""
     @State private var searchResultsCount = 0
     @State private var currentMatchIndex = 0
@@ -1097,6 +1098,7 @@ struct MDViewer: View {
                     searchText: $searchText,
                     searchResultsCount: $searchResultsCount,
                     currentMatchIndex: $currentMatchIndex,
+                    isSearchFieldFocused: $isSearchFieldFocused,
                     onSearch: { text in
                         webViewCoordinator?.performSearch(text)
                     },
@@ -1193,7 +1195,11 @@ struct MDViewer: View {
                 Button {
                     withAnimation {
                         showingSearch.toggle()
-                        if !showingSearch {
+                        if showingSearch {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                isSearchFieldFocused = true
+                            }
+                        } else {
                             searchText = ""
                             webViewCoordinator?.clearSearch()
                         }

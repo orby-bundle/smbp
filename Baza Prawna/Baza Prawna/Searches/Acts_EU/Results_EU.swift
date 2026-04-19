@@ -166,7 +166,7 @@ struct EUDocumentRowView: View {
                             Button(action: {
                                 handleSummaryAction()
                             }) {
-                                Text("Skrót")
+                                Text("Skrót AI")
                                     .font(horizontalSizeClass == .regular ? .body : .subheadline)
                                     .fontWeight(.medium)
                                     .foregroundStyle(Color.accentColor)

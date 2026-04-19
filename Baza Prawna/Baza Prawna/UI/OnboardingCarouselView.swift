@@ -311,7 +311,7 @@ private struct OnboardingStepPage: View {
 
             ZStack(alignment: .bottom) {
                 if step.kind == .welcome {
-                    Color.white.ignoresSafeArea()
+                    Color(.systemBackground).ignoresSafeArea()
                 } else {
                     OnboardingBackground(gradient: step.gradient, trigger: animationTrigger)
                         .opacity(0.95)
@@ -501,7 +501,7 @@ private struct OnboardingStepPage: View {
             .scaledToFill()
             .overlay(
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .stroke(Color.black.opacity(0.06), lineWidth: 1)
+                    .stroke(Color.primary.opacity(0.12), lineWidth: 1)
             )
         .frame(width: 92, height: 92)
         .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
