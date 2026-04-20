@@ -48,6 +48,8 @@ final class AppStateManager: ObservableObject {
     @Published var shouldShowOnboarding: Bool
     @Published var shouldShowSearchHelp: Bool
     @Published var shouldShowMDNavigationHelp: Bool
+    /// Controls visibility of the global-search launcher button (used to hide it on deep navigation screens like PDF/MD viewers).
+    @Published private(set) var shouldShowEverywhereSearchLauncher: Bool = true
 #if DEBUG
     @Published var forceShowSearchHelp: Bool {
         didSet {
@@ -64,6 +66,7 @@ final class AppStateManager: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private let defaults: UserDefaults
+    private var everywhereSearchLauncherHideCount: Int = 0
 
     private init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -111,6 +114,22 @@ final class AppStateManager: ObservableObject {
                 }
             }
             .store(in: &cancellables)
+    }
+
+    // MARK: - Global search launcher visibility
+
+    func pushHideEverywhereSearchLauncher() {
+        everywhereSearchLauncherHideCount += 1
+        if shouldShowEverywhereSearchLauncher {
+            shouldShowEverywhereSearchLauncher = false
+        }
+    }
+
+    func popHideEverywhereSearchLauncher() {
+        everywhereSearchLauncherHideCount = max(0, everywhereSearchLauncherHideCount - 1)
+        if everywhereSearchLauncherHideCount == 0 && !shouldShowEverywhereSearchLauncher {
+            shouldShowEverywhereSearchLauncher = true
+        }
     }
 
     func markOnboardingSeen() {

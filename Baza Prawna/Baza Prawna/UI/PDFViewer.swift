@@ -585,8 +585,12 @@ struct UnifiedPDFViewer: View {
             Button("Nie", role: .cancel) { }
         }
         .onAppear {
+            AppStateManager.shared.pushHideEverywhereSearchLauncher()
             loadPDF()
             checkFavoriteStatus()
+        }
+        .onDisappear {
+            AppStateManager.shared.popHideEverywhereSearchLauncher()
         }
     }
     

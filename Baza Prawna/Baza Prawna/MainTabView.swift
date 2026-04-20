@@ -16,6 +16,7 @@ struct MainTabView: View {
     @State private var alertToOpen: UUID?
     @State private var selectedAlert: SavedAlert?
     @StateObject private var appStateManager = AppStateManager.shared
+    @State private var showingEverywhereSearch: Bool = false
     
     private var totalUnseenResultsCount: Int {
         return notificationManager.unseenResultsCount.values.reduce(0, +)
@@ -24,6 +25,7 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             SearchView()
+                .overlayEverywhereSearchLauncher(isPresented: $showingEverywhereSearch, isVisible: appStateManager.shouldShowEverywhereSearchLauncher)
                 .postHogScreenView("Search Acts")
                 .tabItem {
                     Image(systemName: "building.columns")
@@ -32,6 +34,7 @@ struct MainTabView: View {
                 .tag(0)
             
             SearchEU_Tab()
+                .overlayEverywhereSearchLauncher(isPresented: $showingEverywhereSearch, isVisible: appStateManager.shouldShowEverywhereSearchLauncher)
                 .postHogScreenView("Search EU")
                 .tabItem {
                     Image(systemName: "document.on.document")
@@ -40,6 +43,7 @@ struct MainTabView: View {
                 .tag(1)
             
             CourtCombinedView()
+                .overlayEverywhereSearchLauncher(isPresented: $showingEverywhereSearch, isVisible: appStateManager.shouldShowEverywhereSearchLauncher)
                 .postHogScreenView("Search Courts")
                 .tabItem {
                     Image(systemName: "hammer")
@@ -100,6 +104,67 @@ struct MainTabView: View {
                 appStateManager.markOnboardingSeen()
             }
             .postHogScreenView("Onboarding")
+        }
+        .fullScreenCover(isPresented: $showingEverywhereSearch) {
+            EverywhereSearchContainerView()
+        }
+    }
+}
+
+// MARK: - Everywhere search launcher overlay (top-right)
+
+private extension View {
+    func overlayEverywhereSearchLauncher(isPresented: Binding<Bool>, isVisible: Bool) -> some View {
+        self.overlay(alignment: .topTrailing) {
+            if !isVisible {
+                EmptyView()
+            } else {
+            Button {
+                Haptics.impact(.light)
+                isPresented.wrappedValue = true
+            } label: {
+                Image(systemName: "globe")
+                    .font(.system(size: 32, weight: .semibold))
+                    .foregroundStyle(Color.accentColor)
+                    .symbolRenderingMode(.hierarchical)
+                    .background {
+                        Circle()
+                            .fill(.ultraThinMaterial)
+                            .frame(width: 54, height: 54)
+                            .shadow(color: .black.opacity(0.15), radius: 6, x: 0, y: 3)
+                    }
+                    .frame(width: 54, height: 54)
+                    .contentShape(Circle())
+            }
+            .buttonStyle(.plain)
+            // Keep this below any top segmented controls / nav UI.
+            .padding(.top, 68)
+            .padding(.trailing, 14)
+            .accessibilityLabel("Wyszukiwanie globalne")
+            }
+        }
+    }
+}
+
+// MARK: - Full-screen container (not a sheet)
+
+private struct EverywhereSearchContainerView: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            EverywhereSearchView()
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                        .accessibilityLabel("Wstecz")
+                    }
+                }
         }
     }
 }

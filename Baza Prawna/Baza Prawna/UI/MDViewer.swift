@@ -1410,6 +1410,12 @@ struct MDViewer: View {
                 )
             }
         }
+        .onAppear {
+            AppStateManager.shared.pushHideEverywhereSearchLauncher()
+        }
+        .onDisappear {
+            AppStateManager.shared.popHideEverywhereSearchLauncher()
+        }
     }
 
     private func refreshNoteHighlights() {
