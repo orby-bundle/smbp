@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import PostHog
 
 // MARK: - Everywhere search
 
@@ -17,7 +18,7 @@ struct EverywhereSearchView: View, SearchResettable {
 
         var title: String {
             switch self {
-            case .actsPL: return "DU / MP"
+            case .actsPL: return "Dz.U. / M.P."
             case .actsEU: return "Prawo Unijne"
             case .courtPL: return "Sądy Powszechne"
             case .courtNSA: return "Sądy Administracyjne"
@@ -248,7 +249,7 @@ struct EverywhereSearchView: View, SearchResettable {
             ]
 
             LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
-                ForEach(Source.allCases) { source in
+                ForEach(visibleResultsTabs) { source in
                     resultsTabChip(source)
                 }
             }
@@ -297,6 +298,17 @@ struct EverywhereSearchView: View, SearchResettable {
         .buttonStyle(.plain)
         .accessibilityLabel(isMuted ? "\(source.title), wyciszone" : source.title)
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+
+    private var visibleResultsTabs: [Source] {
+        Source.allCases.filter { source in
+            // Keep muted tabs visible (so user can see "Wyciszone" and re-enable).
+            if !enabledSources.contains(source) { return true }
+            // Keep tabs visible if there is an error (so user can switch and see the message).
+            if errorMessage(for: source) != nil { return true }
+            // Hide tabs with no results (prevents showing "Nic nie znaleziono" tabs in navigation).
+            return resultsCount(for: source) > 0
+        }
     }
 
     @ViewBuilder
@@ -555,6 +567,7 @@ struct EverywhereSearchView: View, SearchResettable {
     }
 
     private func updateScrollToTopVisibility() {
+        normalizeSelectedResultsTab()
         guard showingResults else {
             withAnimation { showScrollToTop = false }
             return
@@ -657,6 +670,38 @@ struct EverywhereSearchView: View, SearchResettable {
         legisError = nil
     }
 
+    private func normalizeSelectedResultsTab() {
+        let visible = visibleResultsTabs
+        guard !visible.isEmpty else { return }
+        if !visible.contains(selectedResultsTab) {
+            selectedResultsTab = visible[0]
+        }
+    }
+
+    private func resultsCount(for source: Source) -> Int {
+        switch source {
+        case .actsPL: return actsPLResults.count
+        case .actsEU: return actsEUResults.count
+        case .courtPL: return courtPLResults.count
+        case .courtNSA: return courtNSAResults.count
+        case .courtSupreme: return courtSupremeResults.count
+        case .legisRPL: return rplResults.count
+        case .legisSejm: return legisResults.count
+        }
+    }
+
+    private func errorMessage(for source: Source) -> String? {
+        switch source {
+        case .actsPL: return actsPLError
+        case .actsEU: return actsEUError
+        case .courtPL: return courtPLError
+        case .courtNSA: return courtNSAError
+        case .courtSupreme: return courtSupremeError
+        case .legisRPL: return rplError
+        case .legisSejm: return legisError
+        }
+    }
+
     private func parsedYear(_ value: String) -> Int? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count == 4, let year = Int(trimmed), year >= 1900, year <= Calendar.current.component(.year, from: Date()) + 3 else {
@@ -701,6 +746,15 @@ struct EverywhereSearchView: View, SearchResettable {
         let enabled = enabledSources
         let keyword = keyword.trimmingCharacters(in: .whitespacesAndNewlines)
         let (fromDate, toDate) = yearRangeDates()
+
+        PostHogSDK.shared.capture("Search Performed", properties: [
+            "search_type": "Everywhere",
+            "keyword": keyword,
+            "enabled_sources": enabled.map(\.rawValue).sorted(),
+            "year_from": yearFrom,
+            "year_to": yearTo,
+            "has_year_filter": fromDate != nil || toDate != nil
+        ])
 
         Task {
             await searchAll(enabled: enabled, keyword: keyword, fromDate: fromDate, toDate: toDate)
