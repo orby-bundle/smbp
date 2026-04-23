@@ -809,7 +809,8 @@ struct EverywhereSearchView: View, SearchResettable {
             dateTo: nil,
             exile: nil,
             inForce: nil,
-            keyword: keyword.isEmpty ? nil : keyword,
+            // Same field as "Tytuł" in SearchView (DUMPSearchState.title) — not keyword
+            keyword: nil,
             limit: 10,
             offset: 0,
             position: nil,
@@ -819,7 +820,7 @@ struct EverywhereSearchView: View, SearchResettable {
             publisher: PublisherOption.du.rawValue,
             sortBy: nil,
             sortDir: nil,
-            title: nil,
+            title: keyword.isEmpty ? nil : keyword,
             type: nil,
             volume: nil,
             year: nil
@@ -863,7 +864,7 @@ struct EverywhereSearchView: View, SearchResettable {
             dateTo: nil,
             exile: nil,
             inForce: nil,
-            keyword: keyword.isEmpty ? nil : keyword,
+            keyword: nil,
             limit: 10,
             offset: actsPLOffset,
             position: nil,
@@ -873,7 +874,7 @@ struct EverywhereSearchView: View, SearchResettable {
             publisher: PublisherOption.du.rawValue,
             sortBy: nil,
             sortDir: nil,
-            title: nil,
+            title: keyword.isEmpty ? nil : keyword,
             type: nil,
             volume: nil,
             year: nil
