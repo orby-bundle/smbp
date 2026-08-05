@@ -5,3 +5,8 @@ firebase-service-account.json
 env-vars.txt
 .terraform/
 .terraform*
+
+# Cloud Run / scheduler exports (project identifiers)
+smbp-backend/**/job-config.yaml
+smbp-backend/**/cloud-scheduler.yaml
+smbp-backend/config_backup/
