@@ -1,5 +1,5 @@
-# Multi-stage Dockerfile for Cloud Run services and jobs
-FROM python:3.14-slim AS base
+# Dockerfile for Alert Scheduler and Clean Stale Alerts
+FROM python:3.14-slim
 
 # Set the working directory
 WORKDIR /app
@@ -12,7 +12,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy source files
 COPY alert_scheduler.py .
-
-# Stage for Alert Scheduler Job
-FROM base AS alert-job
-CMD ["python", "alert_scheduler.py"]
+COPY clean_stale_alerts.py .

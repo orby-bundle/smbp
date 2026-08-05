@@ -25,11 +25,11 @@ if not firebase_admin._apps:
 db = firestore.Client(project="smbp-ios", database="smbpdata")
 
 def clean_stale_alerts():
-    """Delete alerts where last_check_date is older than 6 months"""
+    """Delete alerts where last_check_date is older than 3 months"""
     print("🧹 Starting cleanup of old alerts...")
     
-    cutoff_date = datetime.now(timezone.utc) - timedelta(days=180)  # 6 months ago
-    print(f"🗓️ Deleting alerts with last_check_date before: {cutoff_date}")
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=90)  # 3 months ago
+    print(f"Deleting alerts with last_check_date before: {cutoff_date}")
     
     total_deleted = 0
     users_processed = 0
@@ -59,7 +59,7 @@ def clean_stale_alerts():
                 else:
                     last_check_dt = last_check_date
                 
-                # Delete if older than 6 months
+                # Delete if older than 3 months
                 if last_check_dt < cutoff_date:
                     try:
                         alert_doc.reference.delete()
@@ -70,9 +70,9 @@ def clean_stale_alerts():
                         print(f"❌ Failed to delete alert {alert_doc.id}: {e}")
         
         if user_deleted_count > 0:
-            print(f"✅ User {user_id}: deleted {user_deleted_count} old alerts")
+            print(f"User {user_id}: deleted {user_deleted_count} old alerts")
     
-    print(f"\n🎉 Cleanup complete!")
+    print(f"\nCleanup completed!")
     print(f"📊 Processed {users_processed} users")
     print(f"🗑️ Deleted {total_deleted} old alerts")
 
